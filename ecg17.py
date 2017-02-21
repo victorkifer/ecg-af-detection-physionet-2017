@@ -1,74 +1,88 @@
-from keras.layers import Input, Dense, Dropout
-from keras.models import Model
+from keras.layers import Dense, Dropout, Activation
 from keras.models import Sequential
-import os
-import csv
-import scipy.io
-import numpy as np
+from keras.layers.normalization import BatchNormalization
+from keras.layers.pooling import GlobalAveragePooling1D
 from keras.utils.np_utils import to_categorical
+
+import numpy as np
 import matplotlib.pyplot as plt
+
 import loader
-
-#------------------------------------------------------------------------------
-# Read Matlab .mat file
-#------------------------------------------------------------------------------
-def readMat(fmat):  
-  ds = scipy.io.loadmat(fmat)
-  labels = [x for x in ds.keys() if x[0] != '_']
-  label = labels[0]
-  nsamples = ds[label].shape[0]
-
-  #print fmat+" contains: "+str(ds[label].shape[0])+" samples with "+str(ds[label].shape[1])+" features"
-  return ds[label]#, ds[label].shape[1]
-#------------------------------------------------------------------------------
+import preprocessing
 
 
-def convolution(signal, window_size, step, fadein=0, fadeout=0):
-    start = fadein
-    output = []
-    while start + window_size < len(signal):
-        output.append(signal[start:start+window_size])
-        start+=step
-        
-    return output
-
-def plot_signal(signal, fig=plt.figure()):
+def plot_signal(signal):
     plt.clf()
     time = np.arange(0, len(signal))
-    plt.scatter(time, signal, s = 1) # 
-    
-              
-# Creates a directory 
+    plt.scatter(time, signal, s=1)  #
+
+
+# Creates a directory
 def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
-    
-    for x in X:
-        out = convolution(M[0], 100, 10)
-    
-    
-X, Y = loader.load_all_data
-create_training_set
+    x_out = []
+    y_out = []
+    for i in range(len(X)):
+        x = X[i]
+        y = Y[i]
+        out = preprocessing.convolution(x, window_size, step, fadein, fadeout)
+        for o in out:
+            x_out.append(o)
+            y_out.append(y)
+    return (x_out, y_out)
 
-    
+
+FREQUENCY = 300  # 300 points per second
+WINDOW_SIZE = 1 * FREQUENCY
+STEP = int(0.2 * FREQUENCY)
+(X, Y) = loader.load_all_data()
+(Y, mapping) = preprocessing.format_labels(Y)
+print('Input shape', len(X), len(Y))
+print('Categories mapping', mapping)
+(X, Y) = create_training_set(X, Y, WINDOW_SIZE, 10)
+print('Training shape', len(X), len(Y))
 
 
-"""
-# this creates a model that includes
-# the Input layer and three Dense layers
-model = Sequential()
-model.add(Dropout(0.1, input_shape=(MAX_FEAT, )))
-model.add(Dense(500, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(500, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(500, activation='relu'))
-model.add(Dropout(0.3))
-model.add(Dense(4, activation='softmax'))
-model.compile(optimizer='adagrad',
+def mlp(input_shape):
+    m = Sequential()
+    m.add(Dropout(0.1, input_shape=input_shape))
+    m.add(Dense(500))
+    m.add(Activation('relu'))
+    m.add(Dropout(0.2))
+    m.add(Dense(500))
+    m.add(Activation('relu'))
+    m.add(Dropout(0.2))
+    m.add(Dense(500))
+    m.add(Activation('relu'))
+    m.add(Dropout(0.3))
+    m.add(Dense(4))
+    m.add(Activation('softmax'))
+    m.compile(optimizer='adagrad',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
+    return m
+
+
+def fcn(input_shape):
+    m = Sequential()
+    m.add(Dense(128, input_shape=input_shape))
+    m.add(BatchNormalization())
+    m.add(Activation('relu'))
+    m.add(Dense(256))
+    m.add(BatchNormalization())
+    m.add(Activation('relu'))
+    m.add(Dense(128))
+    m.add(BatchNormalization())
+    m.add(Activation('relu'))
+    m.add(GlobalAveragePooling1D())
+    m.add(Dense(4))
+    m.add(Activation('softmax'))
+    m.compile(optimizer='adagrad',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+    return m
+
+
+model = mlp(input_shape=(WINDOW_SIZE,))
 model.summary()
-              
-print M.shape
-y_binary = to_categorical(labels)
-model.fit(M, y_binary, validation_split=0.33)  # starts training
-"""
+y_binary = to_categorical(Y)
+model.fit(X, y_binary, validation_split=0.33)  # starts training
