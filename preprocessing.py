@@ -26,9 +26,9 @@ def convolution(signal, window_size, step, fadein=0, fadeout=0):
     """
     start = fadein
     output = []
-    end = signal.shape[1] - fadeout
+    end = len(signal) - fadeout
     while start + window_size < end:
-        output.append(signal[0:1, start:start + window_size])
+        output.append(signal[start:start + window_size])
         start += step
 
     return output
@@ -36,4 +36,4 @@ def convolution(signal, window_size, step, fadein=0, fadeout=0):
 
 def denoise(row, lvl):
     info = wavedec(row, 'db1', level=lvl)[0]
-    return np.reshape(info, (-1, 1))
+    return info

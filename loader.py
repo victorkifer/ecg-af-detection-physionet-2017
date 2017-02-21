@@ -17,7 +17,7 @@ def __get_data_from_file(data_path, example_name):
     :return: features for given example
     """
     test = sio.loadmat(data_path + '/' + example_name + '.mat')
-    content = test['val']
+    content = test['val'][0]
     return content
 
 

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 import loader
 import preprocessing
+import keras_helper as helper
 
 
 def plot_signal(signal):
@@ -17,7 +18,6 @@ def plot_signal(signal):
     plt.scatter(time, signal, s=1)  #
 
 
-# Creates a directory
 def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
     x_out = []
     y_out = []
@@ -28,7 +28,7 @@ def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
         for o in out:
             x_out.append(o)
             y_out.append(y)
-    return (x_out, y_out)
+    return (np.array(x_out), y_out)
 
 
 FREQUENCY = 300  # 300 points per second
@@ -84,5 +84,5 @@ def fcn(input_shape):
 
 model = mlp(input_shape=(WINDOW_SIZE,))
 model.summary()
-y_binary = to_categorical(Y)
-model.fit(X, y_binary, validation_split=0.33)  # starts training
+Y_one_hot_vector = to_categorical(Y, len(mapping.keys()))
+model.fit(X, Y_one_hot_vector, validation_split=0.33, callbacks=[helper.model_saver('mlp')])
