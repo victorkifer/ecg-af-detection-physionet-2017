@@ -5,17 +5,12 @@ from keras.layers.pooling import GlobalAveragePooling1D
 from keras.utils.np_utils import to_categorical
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import loader
 import preprocessing
 import keras_helper as helper
 
-
-def plot_signal(signal):
-    plt.clf()
-    time = np.arange(0, len(signal))
-    plt.scatter(time, signal, s=1)  #
+from models import *
 
 
 def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
@@ -41,48 +36,12 @@ print('Categories mapping', mapping)
 (X, Y) = create_training_set(X, Y, WINDOW_SIZE, 10)
 print('Training shape', len(X), len(Y))
 
+# X = X.reshape((X.shape[0], 1, X.shape[1]))
+# print(X.shape)
 
-def mlp(input_shape):
-    m = Sequential()
-    m.add(Dropout(0.1, input_shape=input_shape))
-    m.add(Dense(500))
-    m.add(Activation('relu'))
-    m.add(Dropout(0.2))
-    m.add(Dense(500))
-    m.add(Activation('relu'))
-    m.add(Dropout(0.2))
-    m.add(Dense(500))
-    m.add(Activation('relu'))
-    m.add(Dropout(0.3))
-    m.add(Dense(4))
-    m.add(Activation('softmax'))
-    m.compile(optimizer='adagrad',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-    return m
-
-
-def fcn(input_shape):
-    m = Sequential()
-    m.add(Dense(128, input_shape=input_shape))
-    m.add(BatchNormalization())
-    m.add(Activation('relu'))
-    m.add(Dense(256))
-    m.add(BatchNormalization())
-    m.add(Activation('relu'))
-    m.add(Dense(128))
-    m.add(BatchNormalization())
-    m.add(Activation('relu'))
-    m.add(GlobalAveragePooling1D())
-    m.add(Dense(4))
-    m.add(Activation('softmax'))
-    m.compile(optimizer='adagrad',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-    return m
-
-
-model = mlp(input_shape=(WINDOW_SIZE,))
+impl = MLP(input_shape=X.shape[1:])
+model = impl.model
 model.summary()
 Y_one_hot_vector = to_categorical(Y, len(mapping.keys()))
-model.fit(X, Y_one_hot_vector, validation_split=0.33, callbacks=[helper.model_saver('mlp')])
+model.fit(X[:500000], Y_one_hot_vector[:500000], validation_split=0.33,
+          callbacks=[helper.model_saver(impl.name())])
