@@ -40,7 +40,7 @@ print('Training shape', len(X), len(Y))
 X = X.reshape((X.shape[0], 1, X.shape[1]))
 print(X.shape)
 
-impl = FCN(input_shape=X.shape[1:])
+impl = ResNet(input_shape=X.shape[1:])
 model = impl.model
 model.summary()
 Y_one_hot_vector = to_categorical(Y, len(mapping.keys()))
