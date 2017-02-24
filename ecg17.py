@@ -42,7 +42,7 @@ def print_categorical_validation(model, valX, valY, mapping):
         p = predicted[i]
         val[c][p] += 1;
         
-    print('General accuracy', accuracy)
+    print('Overal accuracy', accuracy)
     for i in range(matrix_size):
         classified = val[i][i]
         total = max(sum(val[i]), 1)
@@ -83,12 +83,12 @@ subY = to_categorical(subY, len(mapping.keys()))
 Xt, Xv, Yt, Yv = helper.train_test_split(subX, subY, 0.33)
 
 model.fit(Xt, Yt,
-          nb_epoch=10,
+          nb_epoch=50,
           validation_data=(Xv, Yv),
           callbacks=[
                   helper.model_saver(impl.name()),
                   helper.model_learning_optimizer(),
-                  helper.learning_stopper()                               
+                  helper.learning_stopper()
                   ])
 
 print_categorical_validation(model, Xv, Yv, mapping)
