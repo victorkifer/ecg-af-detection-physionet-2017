@@ -1,5 +1,6 @@
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 from system import mkdir
+import math
 
 from sklearn.model_selection import train_test_split as dataset_split
 
@@ -26,3 +27,26 @@ def model_learning_optimizer():
 
 def learning_stopper():
     return EarlyStopping(monitor='val_loss', min_delta=0.01, patience=5, verbose=1)
+
+
+def get_class_weights(Y, mu=0.8):
+    """
+    :param Y: labels
+    :param mu: parameter to tune
+    :return: class weights dictionary
+    """
+    train_categories_dist = dict()
+    labels = set(Y)
+    for label in labels:
+        train_occurancies = sum([1 if label == y else 0 for y in Y])
+        train_categories_dist[label] = train_occurancies
+
+    total = sum(train_categories_dist.values())
+    keys = train_categories_dist.keys()
+    class_weight = dict()
+
+    for key in keys:
+        score = math.log(mu * total / float(train_categories_dist[key]))
+        class_weight[key] = score if score > 1.0 else 1.0
+
+    return class_weight

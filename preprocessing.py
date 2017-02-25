@@ -57,3 +57,25 @@ def shuffle_data(data, labels):
         data_shuf.append(data[i])
         labels_shuf.append(labels[i])
     return (np.array(data_shuf), labels_shuf)
+
+
+def balance_data(X, Y, class_weights):
+    nX = []
+    nY = []
+
+    examples = dict()
+    for key in class_weights.keys():
+        examples[key] = [x for (x, y) in zip(X, Y)]
+
+    for key in examples.keys():
+        weight = class_weights[key]
+        while weight >= 1.0:
+            nX += examples[key]
+            nY += [key for i in range(len(examples[key]))]
+            weight -= 1
+        extra = int(weight * len(examples[key]))
+        if extra > 0:
+            nX += examples[key][:extra]
+            nY += [key for i in range(extra)]
+
+    return shuffle_data(nX, nY)

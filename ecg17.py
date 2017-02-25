@@ -1,7 +1,8 @@
 import random
 import numpy as np
 
-seed = int(random.random() * 1e6)
+# seed = int(random.random() * 1e6)
+seed = 42
 random.seed(seed)
 np.random.seed(seed)
 print("Seed =", seed)
@@ -11,6 +12,7 @@ from keras.utils.np_utils import to_categorical
 import loader
 import preprocessing
 import keras_helper as helper
+import validation
 
 from models import *
 
@@ -26,29 +28,6 @@ def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
             x_out.append(o)
             y_out.append(y)
     return (np.array(x_out), y_out)
-
-
-def print_categorical_validation(model, valX, valY, mapping):
-    correct = [x.tolist().index(max(x)) for x in valY]
-    predicted = [x.tolist().index(max(x)) for x in model.predict(valX)]
-
-    values = [correct[i] == predicted[i] for i in range(len(correct))]
-    accuracy = values.count(True) * 1.0 / len(correct)
-
-    matrix_size = len(mapping.keys())
-
-    import numpy as np
-    val = np.zeros((matrix_size, matrix_size), np.int32)
-    for i in range(len(correct)):
-        c = correct[i]
-        p = predicted[i]
-        val[c][p] += 1;
-
-    print('Overal accuracy', accuracy)
-    for i in range(matrix_size):
-        classified = val[i][i]
-        total = max(sum(val[i]), 1)
-        print(mapping[i], 'accuracy is', classified / total)
 
 
 FREQUENCY = 300  # 300 points per second
@@ -77,13 +56,26 @@ subY = Y[:NB_SAMPLES]
 
 from collections import Counter
 
+print("Distribution of categories before balancing")
 counter = Counter(subY)
 for key in counter.keys():
     print(key, counter[key])
 
-subY = to_categorical(subY, len(mapping.keys()))
+# class_weights = helper.get_class_weights(subY)
+class_weights = {
+    0: 3,
+    1: 1,
+    2: 2,
+    3: 30
+}
+print('Class weights', class_weights)
 
 Xt, Xv, Yt, Yv = helper.train_test_split(subX, subY, 0.33)
+
+(Xt, Yt) = preprocessing.balance_data(Xt, Yt, class_weights)
+
+Yt = to_categorical(Yt, len(mapping.keys()))
+Yv = to_categorical(Yv, len(mapping.keys()))
 
 model.fit(Xt, Yt,
           nb_epoch=50,
@@ -94,4 +86,4 @@ model.fit(Xt, Yt,
               helper.learning_stopper()
           ])
 
-print_categorical_validation(model, Xv, Yv, mapping)
+validation.print_categorical_validation(model, Xv, Yv, mapping)
