@@ -65,7 +65,7 @@ def balance_data(X, Y, class_weights):
 
     examples = dict()
     for key in class_weights.keys():
-        examples[key] = [x for (x, y) in zip(X, Y)]
+        examples[key] = [x for (x, y) in zip(X, Y) if y == key]
 
     for key in examples.keys():
         weight = class_weights[key]
