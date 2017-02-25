@@ -1,6 +1,8 @@
 from pywt import wavedec
 import numpy as np
 
+from random import shuffle
+
 
 def format_labels(labels):
     original_labels = list(set(labels))
@@ -37,3 +39,21 @@ def convolution(signal, window_size, step, fadein=0, fadeout=0):
 def denoise(row, lvl):
     info = wavedec(row, 'db1', level=lvl)[0]
     return info
+
+
+def shuffle_data(data, labels):
+    """
+    Shuffles input data
+
+    In some cases input data might be distributed sorted which might create a hidden error
+    in training/validation process so it's better to always shuffle input data before usage
+    :return: Shuffled input data
+    """
+    data_shuf = []
+    labels_shuf = []
+    index_shuf = list(range(len(data)))
+    shuffle(index_shuf)
+    for i in index_shuf:
+        data_shuf.append(data[i])
+        labels_shuf.append(labels[i])
+    return (np.array(data_shuf), labels_shuf)

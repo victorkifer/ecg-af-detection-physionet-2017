@@ -1,6 +1,6 @@
 import csv
-from random import shuffle
 import scipy.io as sio
+import preprocessing
 
 # Default dir where data set is stored
 __DATA_DIR = '/usr/share/ml_data_sets/CinC_ECG/training2017'
@@ -8,7 +8,7 @@ __DATA_DIR = '/usr/share/ml_data_sets/CinC_ECG/training2017'
 
 def load_all_data(data_path=__DATA_DIR):
     (data, labels) = __load_data(data_path)
-    return __shuffle_data(data, labels)
+    return preprocessing.shuffle_data(data, labels)
 
 
 def __get_data_from_file(data_path, example_name):
@@ -33,21 +33,3 @@ def __load_data(data_path):
             labels.append(label)
 
     return (data, labels)
-
-
-def __shuffle_data(data, labels):
-    """
-    Shuffles input data
-
-    In some cases input data might be distributed sorted which might create a hidden error
-    in training/validation process so it's better to always shuffle input data before usage
-    :return: Shuffled input data
-    """
-    data_shuf = []
-    labels_shuf = []
-    index_shuf = list(range(len(data)))
-    shuffle(index_shuf)
-    for i in index_shuf:
-        data_shuf.append(data[i])
-        labels_shuf.append(labels[i])
-    return (data_shuf, labels_shuf)

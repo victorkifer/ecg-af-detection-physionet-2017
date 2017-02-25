@@ -3,8 +3,10 @@ from system import mkdir
 
 from sklearn.model_selection import train_test_split as dataset_split
 
+
 def train_test_split(X, Y, split=0.33):
     return dataset_split(X, Y, test_size=split)
+
 
 def model_saver(model_name):
     mkdir('outputs/models/' + model_name)

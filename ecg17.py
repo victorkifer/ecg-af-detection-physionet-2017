@@ -1,10 +1,12 @@
-from keras.layers import Dense, Dropout, Activation
-from keras.models import Sequential
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import GlobalAveragePooling1D
-from keras.utils.np_utils import to_categorical
-
+import random
 import numpy as np
+
+seed = int(random.random() * 1e6)
+random.seed(seed)
+np.random.seed(seed)
+print("Seed =", seed)
+
+from keras.utils.np_utils import to_categorical
 
 import loader
 import preprocessing
@@ -32,16 +34,16 @@ def print_categorical_validation(model, valX, valY, mapping):
 
     values = [correct[i] == predicted[i] for i in range(len(correct))]
     accuracy = values.count(True) * 1.0 / len(correct)
-    
+
     matrix_size = len(mapping.keys())
-    
+
     import numpy as np
     val = np.zeros((matrix_size, matrix_size), np.int32)
     for i in range(len(correct)):
         c = correct[i]
         p = predicted[i]
         val[c][p] += 1;
-        
+
     print('Overal accuracy', accuracy)
     for i in range(matrix_size):
         classified = val[i][i]
@@ -57,6 +59,7 @@ STEP = int(0.2 * FREQUENCY)
 print('Input length', len(X))
 print('Categories mapping', mapping)
 (X, Y) = create_training_set(X, Y, WINDOW_SIZE, 10)
+(X, Y) = preprocessing.shuffle_data(X, Y)
 print('Training shape', X.shape)
 
 # This is required for FCN
@@ -67,13 +70,13 @@ impl = ResNet(input_shape=X.shape[1:])
 model = impl.model
 model.summary()
 
-
 NB_SAMPLES = 100000
 
 subX = X[:NB_SAMPLES]
 subY = Y[:NB_SAMPLES]
 
 from collections import Counter
+
 counter = Counter(subY)
 for key in counter.keys():
     print(key, counter[key])
@@ -86,9 +89,9 @@ model.fit(Xt, Yt,
           nb_epoch=50,
           validation_data=(Xv, Yv),
           callbacks=[
-                  helper.model_saver(impl.name()),
-                  helper.model_learning_optimizer(),
-                  helper.learning_stopper()
-                  ])
+              helper.model_saver(impl.name()),
+              helper.model_learning_optimizer(),
+              helper.learning_stopper()
+          ])
 
 print_categorical_validation(model, Xv, Yv, mapping)
