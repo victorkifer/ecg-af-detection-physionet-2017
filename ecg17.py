@@ -31,13 +31,13 @@ def create_training_set(X, Y, window_size, step, fadein=0, fadeout=0):
 
 
 FREQUENCY = 300  # 300 points per second
-WINDOW_SIZE = 1 * FREQUENCY
+WINDOW_SIZE = int(1 * FREQUENCY)
 STEP = int(0.2 * FREQUENCY)
 (X, Y) = loader.load_all_data()
 (Y, mapping) = preprocessing.format_labels(Y)
 print('Input length', len(X))
 print('Categories mapping', mapping)
-(X, Y) = create_training_set(X, Y, WINDOW_SIZE, 10)
+(X, Y) = create_training_set(X, Y, WINDOW_SIZE, step=STEP, fadein=500)
 (X, Y) = preprocessing.shuffle_data(X, Y)
 print('Training shape', X.shape)
 
@@ -49,7 +49,7 @@ impl = ResNet(input_shape=X.shape[1:])
 model = impl.model
 model.summary()
 
-NB_SAMPLES = 100000
+NB_SAMPLES = 50000
 
 subX = X[:NB_SAMPLES]
 subY = Y[:NB_SAMPLES]
