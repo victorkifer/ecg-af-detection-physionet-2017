@@ -6,6 +6,7 @@ from keras.layers import BatchNormalization
 from keras.layers import Convolution1D
 from keras.models import Sequential
 
+import numpy as np
 
 class __BaseModel__():
     def name(self):

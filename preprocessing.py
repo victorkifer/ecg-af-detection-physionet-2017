@@ -1,6 +1,7 @@
 from pywt import wavedec
 import numpy as np
 
+from math import fabs
 from random import shuffle
 
 
@@ -79,3 +80,15 @@ def balance_data(X, Y, class_weights):
             nY += [key for i in range(extra)]
 
     return shuffle_data(nX, nY)
+
+
+def embedding(row):
+    """
+    Normalizes the data base on max value into array in range of [0. 1.]
+    :param row: original data
+    :return: array of length of row normalized in range of [0. 1.]
+    """
+    amax = np.amax(row)
+    amin = np.amin(row)
+    abs = float(max(fabs(amin), fabs(amax)))
+    return np.array([x / abs for x in row])

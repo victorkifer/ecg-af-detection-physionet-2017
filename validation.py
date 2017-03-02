@@ -1,26 +1,31 @@
-def print_categorical_validation(model, valX, valY, mapping):
-    correct = [x.tolist().index(max(x)) for x in valY]
-    predicted = [x.tolist().index(max(x)) for x in model.predict(valX)]
+from sklearn.metrics import confusion_matrix, accuracy_score
 
-    values = [correct[i] == predicted[i] for i in range(len(correct))]
-    accuracy = values.count(True) * 1.0 / len(correct)
 
-    matrix_size = len(mapping.keys())
+def extract_validation(trueY, predY, categorical=False):
+    correct = from_categorical(trueY) if categorical else trueY
+    predicted = from_categorical(predY) if categorical else predY
 
-    import numpy as np
-    val = np.zeros((matrix_size, matrix_size), np.int32)
-    for i in range(len(correct)):
-        c = correct[i]
-        p = predicted[i]
-        val[c][p] += 1
+    matrix = confusion_matrix(correct, predicted)
+    accuracy = accuracy_score(correct, predicted)
 
-    print("-" * 30)
-    print('Overal accuracy', accuracy)
-    for i in range(matrix_size):
-        classified = val[i][i]
-        total = max(sum(val[i]), 1)
-        print(mapping[i], 'accuracy is', classified / total)
+    accuracies = []
+    for i in range(matrix.shape[0]):
+        total = max(1, sum(matrix[i]))
+        accuracies.append(matrix[i][i] / total)
 
-    print("-" * 30)
-    print(val)
-    print("-" * 30)
+    return (accuracy, accuracies, matrix)
+
+
+def print_categorical_validation(trueY, predY, categorical=False):
+    (accuracy, accuracies, matrix) = extract_validation(trueY, predY, categorical)
+
+    print('Confusion matrix:')
+    print(matrix)
+    for i in range(len(accuracies)):
+        print('Accuracy for', i, 'is', accuracies[i])
+
+    print('Accuracy', accuracy)
+
+
+def from_categorical(y):
+    return [x.tolist().index(max(x)) for x in y]

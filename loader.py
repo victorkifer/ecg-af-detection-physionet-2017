@@ -4,6 +4,7 @@ import preprocessing
 
 # Default dir where data set is stored
 __DATA_DIR = '/usr/share/ml_data_sets/CinC_ECG/training2017'
+FREQUENCY = 300
 
 
 def load_all_data(data_path=__DATA_DIR):
