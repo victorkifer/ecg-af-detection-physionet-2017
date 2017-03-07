@@ -1,6 +1,7 @@
-from datetime import datetime
 import sys
-import system
+from datetime import datetime
+
+from utils import system
 
 
 class Tee(object):

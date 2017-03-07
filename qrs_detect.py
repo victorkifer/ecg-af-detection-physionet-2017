@@ -1,5 +1,6 @@
 import numpy as np
 from math import *
+from matlab import *
 
 from scipy.signal import lfilter
 
@@ -92,28 +93,6 @@ def moving_window_integration(ecg):
     ecg6 = np.roll(ecg6, 15)
     abs_max = max([fabs(x) for x in ecg6])
     return np.array([x / abs_max for x in ecg6])
-
-
-def find(a, func):
-    return [i for (i, val) in enumerate(a) if func(val)]
-
-
-def diff(a):
-    return a[1:] - a[:-1]
-
-
-def add(array, value):
-    return np.array([x + value for x in array])
-
-
-def np_max(array):
-    idx = np.argmax(array)
-    return (array[idx], idx)
-
-
-def np_min(array):
-    idx = np.argmin(array)
-    return (array[idx], idx)
 
 
 def qrs(ecg1, ecg6):
