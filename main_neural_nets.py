@@ -27,6 +27,7 @@ def create_training_set(X, Y):
     x_out = []
     y_out = []
     for i in range(len(X)):
+        print(i)
         x = X[i]
         y = Y[i]
         out = feature_extractor.extract_heart_beats(x)
@@ -43,6 +44,8 @@ STEP = int(0.3 * FREQUENCY)
 (Y, mapping) = preprocessing.format_labels(Y)
 print('Input length', len(X))
 print('Categories mapping', mapping)
+X = X[:3000]
+Y = Y[:3000]
 (X, Y) = create_training_set(X, Y)
 (X, Y) = preprocessing.shuffle_data(X, Y)
 print('Training shape', X.shape)

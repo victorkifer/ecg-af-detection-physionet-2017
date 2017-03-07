@@ -2,7 +2,19 @@ import numpy as np
 from math import *
 from matlab import *
 
+np.set_printoptions(threshold=np.nan)
+
 from scipy.signal import lfilter
+
+
+def qrs_detect_normalized(ecg):
+    ecg2 = low_pass_filtering(ecg)
+    ecg3 = high_pass_filtering(ecg2)
+    ecg4 = derivative_filter(ecg3)
+    ecg5 = squaring(ecg4)
+    ecg6 = moving_window_integration(ecg5)
+    q, r, s = qrs(ecg, ecg6)
+    return (q, r, s)
 
 
 def qrs_detect(ecg):
@@ -15,13 +27,7 @@ def qrs_detect(ecg):
     :return: tuple of 3 arrays (positions of Q, positions of R, positions of S)
     """
     ecg1 = cancel_dc_drift(ecg)
-    ecg2 = low_pass_filtering(ecg1)
-    ecg3 = high_pass_filtering(ecg2)
-    ecg4 = derivative_filter(ecg3)
-    ecg5 = squaring(ecg4)
-    ecg6 = moving_window_integration(ecg5)
-    q, r, s = qrs(ecg1, ecg6)
-    return (q, r, s)
+    return qrs_detect_normalized(ecg1)
 
 
 def cancel_dc_drift(ecg):
@@ -38,12 +44,12 @@ def low_pass_filtering(ecg):
     b = [1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1]
     a = [1, -2, 1]
 
-    # transfter function of LPF
+    # transfer function of LPF
     h_LP = lfilter(b, a, np.append([1], np.zeros(12)))
 
     ecg2 = np.convolve(ecg, h_LP)
     # cancel delay
-    # ecg2 = ecg2 (range(6, len(ecg) + 6))
+    ecg2 = np.roll(ecg2, 6)
     abs_max = max([fabs(x) for x in ecg2])
     return np.array([x / abs_max for x in ecg2])
 
@@ -59,7 +65,7 @@ def high_pass_filtering(ecg):
     h_HP = lfilter(b, a, np.append([1], np.zeros(32)))
     ecg3 = np.convolve(ecg, h_HP)
     # cancel delay
-    # ecg3 = ecg3 (range(16, len(ecg) + 16))
+    ecg3 = np.roll(ecg3, 16)
     abs_max = max([fabs(x) for x in ecg3])
     return np.array([x / abs_max for x in ecg3])
 
@@ -70,7 +76,6 @@ def derivative_filter(ecg):
     h = [x / 8 for x in h]
     # Apply filter
     ecg4 = np.convolve(ecg, h)
-    # ecg4 = ecg4(range(2, len(ecg) + 2))
     ecg4 = np.roll(ecg4, 2)
     abs_max = max([fabs(x) for x in ecg4])
     return np.array([x / abs_max for x in ecg4])
@@ -89,7 +94,6 @@ def moving_window_integration(ecg):
 
     # Apply filter
     ecg6 = np.convolve(ecg, h)
-    # ecg6 = ecg6(range(15, len(ecg) + 15))
     ecg6 = np.roll(ecg6, 15)
     abs_max = max([fabs(x) for x in ecg6])
     return np.array([x / abs_max for x in ecg6])
@@ -98,15 +102,19 @@ def moving_window_integration(ecg):
 def qrs(ecg1, ecg6):
     max_h = max(ecg6)
     thresh = np.mean(ecg6)
-    poss_reg = np.transpose(np.select([ecg6 > thresh * max_h], [ecg6]))
+    poss_reg = np.transpose(apply(ecg6, lambda x: x > max_h * thresh))
 
-    left = find(diff(np.append([0], poss_reg)), lambda x: x == 1)
-    right = find(diff(np.append(poss_reg, [0])), lambda x: x == 1)
+    left_reg = np.append([0], poss_reg)
+    left_diff = diff(left_reg)
+    left = find(left_diff, lambda x: x == 1)
+
+    right_reg = np.append(poss_reg, [0])
+    right_diff = diff(right_reg)
+    right = find(right_diff, lambda x: x == -1)
 
     # cancel delay because of LP and HP
-    shift = -(6 + 16)
+    shift = -(6 + 16 + 2 + 15 + 31)
     left = add(left, shift)
-    # cancel delay because of LP and HP
     right = add(right, shift)
 
     R_values = []
@@ -116,19 +124,27 @@ def qrs(ecg1, ecg6):
     S_values = []
     S_locs = []
     for i in range(len(left)):
+        if left[i] == right[i] or left[i] < 0 or right[i] < 0:
+            # print('Ignoring range', left[i], right[i])
+            continue
+
         R_value, R_loc = np_max(ecg1[left[i]:right[i]])
-        # add offset
-        R_loc = R_loc - 1 + left[i]
+
+        if R_loc == 0 or R_loc == right[i] - left[i]:
+            # print('Ignoring range', left[i], right[i], 'R_loc is at the edge')
+            continue
+
+        R_loc = R_loc + left[i]
         R_values.append(R_value)
         R_locs.append(R_loc)
 
         Q_value, Q_loc = np_min(ecg1[left[i]:R_loc])
-        Q_loc = Q_loc - 1 + left[i]
+        Q_loc = Q_loc + left[i]
         Q_values.append(Q_value)
         Q_locs.append(Q_loc)
 
-        S_value, S_loc = np_min(ecg1[left[i]:right[i]])
-        S_loc = S_loc - 1 + left[i]
+        S_value, S_loc = np_min(ecg1[R_loc:right[i]])
+        S_loc = S_loc + R_loc
         S_values.append(S_value)
         S_locs.append(S_loc)
 

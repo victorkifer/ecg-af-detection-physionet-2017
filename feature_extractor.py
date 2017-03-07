@@ -1,6 +1,8 @@
 import numpy as np
 import peakutils
 
+from qrs_detect import qrs_detect, cancel_dc_drift, qrs_detect_normalized
+
 FREQUENCY = 300
 MIN_HEARTBEAT_TIME = int(0.4 * FREQUENCY)
 
@@ -13,9 +15,10 @@ AFTER_R = ST_TIME + QRS_TIME // 2
 
 
 def extract_heart_beats(row):
-    peaks = get_r_peaks_positions(row)
+    row = cancel_dc_drift(row)
+    q,r,s = qrs_detect_normalized(row)
     beats = []
-    for peak in peaks:
+    for peak in r:
         start = peak - BEFORE_R
         end = peak + AFTER_R
         if start < 0:

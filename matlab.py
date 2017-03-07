@@ -14,7 +14,7 @@ def diff(a):
     """
     Analog to matlab: diff(array)
     """
-    return a[1:] - a[:-1]
+    return np.diff(a, n=1, axis=0)
 
 
 def add(array, value):
@@ -40,3 +40,11 @@ def np_min(array):
     """
     idx = np.argmin(array)
     return (array[idx], idx)
+
+
+def select(array, condition):
+    return np.array([x for x in array if condition(x)])
+
+
+def apply(array, condition):
+    return np.array([1 if condition(x) else 0 for x in array])
