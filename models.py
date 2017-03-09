@@ -40,19 +40,24 @@ class FCN(__BaseModel__):
     model = None
 
     def __init__(self, input_shape):
-        m = Sequential()
-        m.add(Convolution1D(nb_filter=128, filter_length=8, input_shape=input_shape, border_mode="same"))
-        m.add(BatchNormalization())
-        m.add(Activation('relu'))
-        m.add(Convolution1D(nb_filter=256, filter_length=5, border_mode="same"))
-        m.add(BatchNormalization())
-        m.add(Activation('relu'))
-        m.add(Convolution1D(nb_filter=128, filter_length=3, border_mode="same"))
-        m.add(BatchNormalization())
-        m.add(Activation('relu'))
-        m.add(GlobalAveragePooling1D())
-        m.add(Dense(4))
-        m.add(Activation('softmax'))
+        inputs = Input(shape=input_shape)
+        outputs = Convolution1D(nb_filter=128, filter_length=8, border_mode="same")(inputs)
+        outputs = BatchNormalization()(outputs)
+        outputs = Activation('relu')(outputs)
+
+        outputs = Convolution1D(nb_filter=256, filter_length=5, border_mode="same")(outputs)
+        outputs = BatchNormalization()(outputs)
+        outputs = Activation('relu')(outputs)
+
+        outputs = Convolution1D(nb_filter=128, filter_length=3, border_mode="same")(outputs)
+        outputs = BatchNormalization()(outputs)
+        outputs = Activation('relu')(outputs)
+
+        outputs = GlobalAveragePooling1D()(outputs)
+        outputs = Dense(4)(outputs)
+        outputs = Activation('softmax')(outputs)
+
+        m = Model(input=inputs, output=outputs)
         m.compile(optimizer='adagrad',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])

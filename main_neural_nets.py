@@ -22,20 +22,8 @@ import validation
 
 from models import *
 
-
 def create_training_set(X, Y):
-    x_out = []
-    y_out = []
-    for i in range(len(X)):
-        print(i)
-        x = X[i]
-        y = Y[i]
-        out = feature_extractor.extract_heart_beats(x)
-        for o in out:
-            x_out.append(o)
-            y_out.append(y)
-    return (np.array(x_out), y_out)
-
+    return feature_extractor.extract_heartbeats(X, Y)
 
 FREQUENCY = 300  # 300 points per second
 WINDOW_SIZE = int(3 * FREQUENCY)
@@ -44,8 +32,6 @@ STEP = int(0.3 * FREQUENCY)
 (Y, mapping) = preprocessing.format_labels(Y)
 print('Input length', len(X))
 print('Categories mapping', mapping)
-X = X[:3000]
-Y = Y[:3000]
 (X, Y) = create_training_set(X, Y)
 (X, Y) = preprocessing.shuffle_data(X, Y)
 print('Training shape', X.shape)

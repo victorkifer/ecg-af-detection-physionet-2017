@@ -1,3 +1,5 @@
+import multiprocessing as mp
+
 import numpy as np
 import peakutils
 
@@ -14,7 +16,22 @@ BEFORE_R = PR_TIME + QRS_TIME // 2
 AFTER_R = ST_TIME + QRS_TIME // 2
 
 
-def extract_heart_beats(row):
+def extract_heartbeats(X, Y):
+    pool = mp.Pool()
+    x_new = pool.map(extract_heartbeats_for_row, X)
+    pool.close()
+    x_out = []
+    y_out = []
+    for i in range(len(x_new)):
+        out = x_new[i]
+        y = Y[i]
+        for o in out:
+            x_out.append(o)
+            y_out.append(y)
+    return np.array(x_out), y_out
+
+
+def extract_heartbeats_for_row(row):
     row = cancel_dc_drift(row)
     q,r,s = qrs_detect_normalized(row)
     beats = []
@@ -30,7 +47,9 @@ def extract_heart_beats(row):
 
 
 def get_r_peaks_positions(row):
-    return peakutils.indexes(row, thres=0.6, min_dist=MIN_HEARTBEAT_TIME)
+    row = cancel_dc_drift(row)
+    q, r, s = qrs_detect_normalized(row)
+    return r
 
 
 def get_r_peaks_frequencies(row):
