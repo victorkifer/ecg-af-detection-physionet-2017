@@ -1,8 +1,28 @@
 from pywt import wavedec
 import numpy as np
+import multiprocessing as mp
 
 from math import fabs
 from random import shuffle
+
+
+def normalize(X):
+    pool = mp.Pool()
+    x_new = pool.map(normalize_ecg, X)
+    pool.close()
+    return x_new
+
+
+def remove_dc_component(ecg):
+    mean = np.mean(ecg)
+    # cancel DC components
+    return np.array([x - mean for x in ecg])
+
+def normalize_ecg(ecg):
+    ecg = remove_dc_component(ecg)
+    # normalize to 1
+    abs_max = max([fabs(x) for x in ecg])
+    return np.array([x / abs_max for x in ecg])
 
 
 def format_labels(labels):

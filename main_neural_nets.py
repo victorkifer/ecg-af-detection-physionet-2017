@@ -4,7 +4,7 @@ import numpy as np
 
 from utils import logger
 
-logger.log_to_files()
+logger.log_to_files('nn')
 
 # seed = int(random.random() * 1e6)
 seed = 42
@@ -29,6 +29,7 @@ FREQUENCY = 300  # 300 points per second
 WINDOW_SIZE = int(3 * FREQUENCY)
 STEP = int(0.3 * FREQUENCY)
 (X, Y) = loader.load_all_data()
+X = preprocessing.normalize(X)
 (Y, mapping) = preprocessing.format_labels(Y)
 print('Input length', len(X))
 print('Categories mapping', mapping)
@@ -69,5 +70,4 @@ model.fit(Xt, Yt,
               helper.model_learning_optimizer(),
               helper.learning_stopper()
           ])
-
 validation.print_categorical_validation(Yv, model.predict(Xv), categorical=True)

@@ -1,42 +1,44 @@
-import numpy as np
 from math import *
-from matlab import *
+
+from utils.matlab import *
 
 np.set_printoptions(threshold=np.nan)
 
 from scipy.signal import lfilter
 
 
-def qrs_detect_normalized(ecg):
-    ecg2 = low_pass_filtering(ecg)
-    ecg3 = high_pass_filtering(ecg2)
-    ecg4 = derivative_filter(ecg3)
-    ecg5 = squaring(ecg4)
-    ecg6 = moving_window_integration(ecg5)
-    q, r, s = qrs(ecg, ecg6)
-    return (q, r, s)
+def remove_dc_component(ecg):
+    mean = np.mean(ecg)
+    # cancel DC components
+    return np.array([x - mean for x in ecg])
 
 
-def qrs_detect(ecg):
+def normalize_ecg(ecg):
+    """
+    Normalizes to a range of [-1; 1]
+    :param ecg: input signal
+    :return: normalized signal
+    """
+    abs_max = max([fabs(x) for x in ecg])
+    return np.array([x / abs_max for x in ecg])
+
+
+def r_detect(ecg):
     """
     Based on this article
     http://cnx.org/contents/YR1BUs9_@1/QRS-Detection-Using-Pan-Tompki
 
     :param ecg: ECG signal
     :param fs: signal frequency
-    :return: tuple of 3 arrays (positions of Q, positions of R, positions of S)
+    :return: list, positions of R
     """
-    ecg1 = cancel_dc_drift(ecg)
-    return qrs_detect_normalized(ecg1)
-
-
-def cancel_dc_drift(ecg):
-    mean = np.mean(ecg)
-    # cancel DC components
-    ecg = [x - mean for x in ecg]
-    # normalize to 1
-    abs_max = max([fabs(x) for x in ecg])
-    return np.array([x / abs_max for x in ecg])
+    ecg2 = low_pass_filtering(ecg)
+    ecg3 = high_pass_filtering(ecg2)
+    ecg4 = derivative_filter(ecg3)
+    ecg5 = squaring(ecg4)
+    ecg6 = moving_window_integration(ecg5)
+    left, right = left_right(ecg6)
+    return qrs(ecg, left, right)
 
 
 def low_pass_filtering(ecg):
@@ -49,9 +51,8 @@ def low_pass_filtering(ecg):
 
     ecg2 = np.convolve(ecg, h_LP)
     # cancel delay
-    ecg2 = np.roll(ecg2, 6)
-    abs_max = max([fabs(x) for x in ecg2])
-    return np.array([x / abs_max for x in ecg2])
+    ecg2 = np.roll(ecg2, -6)
+    return normalize_ecg(ecg2)
 
 
 def high_pass_filtering(ecg):
@@ -65,9 +66,8 @@ def high_pass_filtering(ecg):
     h_HP = lfilter(b, a, np.append([1], np.zeros(32)))
     ecg3 = np.convolve(ecg, h_HP)
     # cancel delay
-    ecg3 = np.roll(ecg3, 16)
-    abs_max = max([fabs(x) for x in ecg3])
-    return np.array([x / abs_max for x in ecg3])
+    ecg3 = np.roll(ecg3, -16)
+    return normalize_ecg(ecg3)
 
 
 def derivative_filter(ecg):
@@ -76,15 +76,13 @@ def derivative_filter(ecg):
     h = [x / 8 for x in h]
     # Apply filter
     ecg4 = np.convolve(ecg, h)
-    ecg4 = np.roll(ecg4, 2)
-    abs_max = max([fabs(x) for x in ecg4])
-    return np.array([x / abs_max for x in ecg4])
+    ecg4 = np.roll(ecg4, -6)
+    return normalize_ecg(ecg4)
 
 
 def squaring(ecg):
     ecg5 = np.square(ecg)
-    abs_max = max([fabs(x) for x in ecg5])
-    return np.array([x / abs_max for x in ecg5])
+    return normalize_ecg(ecg5)
 
 
 def moving_window_integration(ecg):
@@ -94,12 +92,11 @@ def moving_window_integration(ecg):
 
     # Apply filter
     ecg6 = np.convolve(ecg, h)
-    ecg6 = np.roll(ecg6, 15)
-    abs_max = max([fabs(x) for x in ecg6])
-    return np.array([x / abs_max for x in ecg6])
+    ecg6 = np.roll(ecg6, -15)
+    return normalize_ecg(ecg6)
 
 
-def qrs(ecg1, ecg6):
+def left_right(ecg6):
     max_h = max(ecg6)
     thresh = np.mean(ecg6)
     poss_reg = np.transpose(apply(ecg6, lambda x: x > max_h * thresh))
@@ -112,19 +109,14 @@ def qrs(ecg1, ecg6):
     right_diff = diff(right_reg)
     right = find(right_diff, lambda x: x == -1)
 
-    # cancel delay because of LP and HP
-    shift = -(6 + 16 + 2 + 15 + 31)
-    left = add(left, shift)
-    right = add(right, shift)
+    return left, right
 
+
+def qrs(ecg1, left, right):
     R_values = []
     R_locs = []
-    Q_values = []
-    Q_locs = []
-    S_values = []
-    S_locs = []
     for i in range(len(left)):
-        if left[i] == right[i] or left[i] < 0 or right[i] < 0:
+        if left[i] >= right[i] or left[i] < 0 or right[i] > len(ecg1):
             # print('Ignoring range', left[i], right[i])
             continue
 
@@ -138,17 +130,5 @@ def qrs(ecg1, ecg6):
         R_values.append(R_value)
         R_locs.append(R_loc)
 
-        Q_value, Q_loc = np_min(ecg1[left[i]:R_loc])
-        Q_loc = Q_loc + left[i]
-        Q_values.append(Q_value)
-        Q_locs.append(Q_loc)
-
-        S_value, S_loc = np_min(ecg1[R_loc:right[i]])
-        S_loc = S_loc + R_loc
-        S_values.append(S_value)
-        S_locs.append(S_loc)
-
-    Q_locs = [Q_locs[i] for i in find(Q_locs, lambda x: x != 0)]
     R_locs = [R_locs[i] for i in find(R_locs, lambda x: x != 0)]
-    S_locs = [S_locs[i] for i in find(S_locs, lambda x: x != 0)]
-    return (Q_locs, R_locs, S_locs)
+    return R_locs

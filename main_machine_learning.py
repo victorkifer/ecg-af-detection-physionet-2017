@@ -1,6 +1,11 @@
 import random
 import numpy as np
 
+from utils import async
+from utils import logger
+
+logger.log_to_files('ml')
+
 # seed = int(random.random() * 1e6)
 from sklearn.ensemble import RandomForestClassifier
 
@@ -31,92 +36,83 @@ FADEIN = int(1.5 * FREQUENCY)
 NB_PERIODS = 3
 
 
-def range_presentation(row, value, percent):
-    amax = math.fabs(np.amax(row))
-    min = value - percent * amax
-    max = value + percent * amax
-    total = 1.0 * len(row)
-    return sum([1 if min < x < max else 0 for x in row]) / total
-
-
-def relative_mean(row, trim, mean):
-    if mean == 0:
-        mean = 1.0
-    return np.mean(stats.trimboth(row, trim)) / mean
-
-
-def features_for_period(row, start, end):
-    subrow = row[start:end]
-    mode = stats.mode(subrow).mode[0]
-    if math.isnan(mode):
-        raise Exception('No mode')
-    mean = np.mean(subrow)
-    return [
-        np.amin(subrow),
-        np.amax(subrow),
-        mean,
-        np.std(subrow),
-        relative_mean(subrow, 0.1, mean),
-        relative_mean(subrow, 0.2, mean),
-        relative_mean(subrow, 0.3, mean),
-        mode,
-        range_presentation(subrow, mode, 0.05),
-        range_presentation(subrow, mode, 0.1),
-        range_presentation(subrow, mode, 0.2),
-        range_presentation(subrow, mode, 0.4),
-        stats.skew(subrow),
-        stats.kurtosis(subrow)
-    ]
-
-
 def features_for_row(row):
-    start = FADEIN
-    times = (NB_PERIODS - 1) * WINDOW_SIZE // STEP
     features = []
-    features_per_period = None
-    for i in range(times):
-        features += features_for_period(row, start, start + WINDOW_SIZE)
-        if features_per_period is None:
-            features_per_period = len(features)
-        start += STEP
+    pqrsts = extract_pqrst(row)
 
-    mins = np.array(features[0::features_per_period])
-    maxs = np.array(features[1::features_per_period])
-    means = np.array(features[2::features_per_period])
-    stds = np.array(features[3::features_per_period])
+    if len(pqrsts) == 0:
+        return np.zeros(4 + 7 * 12)
 
-    for c in (mins, maxs, means, stds):
-        features.append(np.amin(c))
-        features.append(np.amax(c))
-        features.append(np.mean(c))
-        features.append(np.std(c))
+    p = [x[0] for x in pqrsts]
+    q = [x[1] for x in pqrsts]
+    r = [x[2] for x in pqrsts]
+    s = [x[3] for x in pqrsts]
+    t = [x[4] for x in pqrsts]
 
-    r_peaks = np.array(get_r_peaks_frequencies(row))
-    if len(r_peaks) > 0:
-        features.append(np.amin(r_peaks))
-        features.append(np.amax(r_peaks))
-        features.append(np.mean(r_peaks))
-        features.append(np.std(r_peaks))
+    rrs = get_rr_intervals(r)
+
+    if len(rrs) > 0:
+        features += [
+            np.amin(rrs),
+            np.amax(rrs),
+            np.mean(rrs),
+            np.std(rrs)
+        ]
     else:
-        features += [0, 0, 0, 0]
+        features += [0 for x in range(4)]
+
+    pqrsts = pqrsts[:min(7, len(pqrsts))]
+    row = low_pass_filtering(row)
+    row = high_pass_filtering(row)
+    row = derivative_filter(row)
+    row = squaring(row)
+    row = moving_window_integration(row)
+    for i in range(len(pqrsts)):
+        pq = row[p[i]:q[i]]
+        st = row[s[i]:t[i]]
+        pt = row[p[i]:t[i]]
+        pmax = np.amax(pq)
+        tmax = np.amax(st)
+
+        features += [
+            # features for PQ interval
+            pmax,
+            pmax / row[r[i]],
+            np.mean(pq),
+            np.std(pq),
+            stats.mode(pq).mode[0],
+
+            # feature for ST interval
+            tmax,
+            tmax / row[r[i]],
+            np.mean(st),
+            np.std(st),
+            stats.mode(st).mode[0],
+
+            # features for whole PQRST interval
+            stats.skew(pt),
+            stats.kurtosis(pt)
+        ]
+
+    for i in range(7 - len(pqrsts)):
+        features += [0 for x in range(12)]
 
     return features
 
 
 (X, Y) = loader.load_all_data()
+X = preprocessing.normalize(X)
 (Y, mapping) = preprocessing.format_labels(Y)
 print('Input length', len(X))
 print('Categories mapping', mapping)
 
-NB_EXAMPLES = 4000
+subX = X
+subY = Y
 
-subX = X[:NB_EXAMPLES]
-subY = Y[:NB_EXAMPLES]
-
-subX = [features_for_row(row) for row in subX]
+print("Features extraction started")
+subX = async.apply_async(subX, features_for_row)
+print("Features extraction finished")
 subY = subY
-
-print(subX[0], subY[0])
 
 from collections import Counter
 
@@ -127,7 +123,7 @@ for key in counter.keys():
 
 Xt, Xv, Yt, Yv = helper.train_test_split(subX, subY, 0.33)
 
-model = RandomForestClassifier(n_estimators=20, n_jobs=4)
+model = RandomForestClassifier(n_estimators=20, n_jobs=mp.cpu_count())
 model.fit(Xt, Yt)
 print(model.feature_importances_)
 

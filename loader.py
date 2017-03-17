@@ -12,7 +12,7 @@ def load_all_data(data_path=__DATA_DIR):
     return preprocessing.shuffle_data(data, labels)
 
 
-def __get_data_from_file(data_path, example_name):
+def load_data_from_file(example_name, data_path=__DATA_DIR):
     """
     Loads data from MatLab file for given example
     :return: features for given example
@@ -22,7 +22,7 @@ def __get_data_from_file(data_path, example_name):
     return content
 
 
-def __load_data(data_path):
+def __load_data(data_path=__DATA_DIR):
     data = []
     labels = []
     with open(data_path + '/REFERENCE.csv', 'r') as csvfile:
@@ -30,7 +30,7 @@ def __load_data(data_path):
         for row in reader:
             file_name = row[0]
             label = row[1]
-            data.append(__get_data_from_file(data_path, file_name))
+            data.append(load_data_from_file(file_name, data_path))
             labels.append(label)
 
     return (data, labels)

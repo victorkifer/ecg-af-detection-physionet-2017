@@ -3,7 +3,7 @@ import multiprocessing as mp
 import numpy as np
 import peakutils
 
-from qrs_detect import qrs_detect, cancel_dc_drift, qrs_detect_normalized
+from qrs_detect import *
 
 FREQUENCY = 300
 MIN_HEARTBEAT_TIME = int(0.4 * FREQUENCY)
@@ -31,29 +31,58 @@ def extract_heartbeats(X, Y):
     return np.array(x_out), y_out
 
 
-def extract_heartbeats_for_row(row):
-    row = cancel_dc_drift(row)
-    q,r,s = qrs_detect_normalized(row)
+def extract_heartbeats_for_row(ecg):
+    r = r_detect(ecg)
     beats = []
     for peak in r:
         start = peak - BEFORE_R
         end = peak + AFTER_R
         if start < 0:
             continue
+        if end > len(ecg):
+            continue
+        beats.append(ecg[start:end])
+    return beats
+
+
+def extract_pqrst(row):
+    PR = 0.16
+    QRS = 0.1
+    QT = 0.44
+    QR = QRS / 2
+    RS = QRS / 2
+    ST = QT - QRS
+    PQ = PR - QR
+
+    PR = int(PR * FREQUENCY)
+    QRS = int(QRS * FREQUENCY)
+    QT = int(QT * FREQUENCY)
+    QR = int(QR * FREQUENCY)
+    RS = int(RS * FREQUENCY)
+    ST = int(ST * FREQUENCY)
+    PQ = int(PQ * FREQUENCY)
+
+    r = r_detect(row)
+    beats = []
+    for R in r:
+        start = R - PR
+        if start < 0:
+            continue
+        end = R + RS + ST
         if end > len(row):
             continue
-        beats.append(row[start:end])
+
+        pqrst = (R - PR, R - QR, R, R + RS, R + RS + ST)
+        beats.append(pqrst)
     return beats
 
 
 def get_r_peaks_positions(row):
-    row = cancel_dc_drift(row)
-    q, r, s = qrs_detect_normalized(row)
+    r = r_detect(row)
     return r
 
 
-def get_r_peaks_frequencies(row):
-    peaks = get_r_peaks_positions(row)
+def get_rr_intervals(peaks):
     times = []
     prev = peaks[0]
     for peak in peaks[1:]:

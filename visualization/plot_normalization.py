@@ -25,20 +25,39 @@ def plot(ecg):
     plt.show()
 
 
+def plot2(ecg, ecg1):
+    l1, = plt.plot(ecg, label="Line 1")
+    l2, = plt.plot(ecg1, label="Line 2")
+    plt.grid()
+    plt.legend(handles=[l1, l2])
+    plt.show()
+
+
 def plot_with_detected_peaks(ecg):
-    plot(ecg)
-    ecg1 = cancel_dc_drift(ecg)
-    plot(ecg1)
+    # plot(ecg)
+    ecg1 = preprocessing.normalize_ecg(ecg)
+    print(len(ecg), "->", len(ecg1))
+    # plot(ecg1)
     ecg2 = low_pass_filtering(ecg1)
-    plot(ecg2)
+    print(len(ecg1), "->", len(ecg2))
+    # plot2(ecg1, ecg2)
+    # plot(ecg2)
     ecg3 = high_pass_filtering(ecg2)
-    plot(ecg3)
+    print(len(ecg2), "->", len(ecg3))
+    # plot2(ecg2, ecg3)
+    # plot(ecg3)
     ecg4 = derivative_filter(ecg3)
-    plot(ecg4)
+    print(len(ecg3), "->", len(ecg4))
+    # plot2(ecg3, ecg4)
+    # plot(ecg4)
     ecg5 = squaring(ecg4)
-    plot(ecg5)
+    print(len(ecg4), "->", len(ecg5))
+    # plot2(ecg4, ecg5)
+    # plot(ecg5)
     ecg6 = moving_window_integration(ecg5)
-    plot(ecg6)
+    print(len(ecg5), "->", len(ecg6))
+    # plot2(ecg5, ecg6)
+    # plot(ecg6)
 
 
 plot_with_detected_peaks(X[0])
