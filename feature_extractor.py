@@ -1,11 +1,9 @@
 import multiprocessing as mp
 
-import numpy as np
-import peakutils
 from pywt import wavedec
-import math
 
 from qrs_detect import *
+from qrs_detect2 import qrs_detect2
 
 FREQUENCY = 300
 MIN_HEARTBEAT_TIME = int(0.4 * FREQUENCY)
@@ -20,7 +18,7 @@ AFTER_R = ST_TIME + QRS_TIME // 2
 
 def trimboth(row, portion):
     filter = portion * max(
-        math.fabs(np.amin(row)),
+        fabs(np.amin(row)),
         abs(np.amax(row))
     )
 
@@ -71,7 +69,7 @@ def extract_heartbeats(X, Y):
 
 
 def extract_heartbeats_for_row(ecg):
-    r = r_detect(ecg)
+    r = get_r_peaks_positions(ecg, fs=300, thres=0.4, ref_period=0.2)
     beats = []
     for peak in r:
         start = peak - BEFORE_R
@@ -101,7 +99,7 @@ def extract_pqrst(row):
     ST = int(ST * FREQUENCY)
     PQ = int(PQ * FREQUENCY)
 
-    r = r_detect(row)
+    r = get_r_peaks_positions(row)
     beats = []
     for R in r:
         start = R - PR
@@ -117,14 +115,5 @@ def extract_pqrst(row):
 
 
 def get_r_peaks_positions(row):
-    r = r_detect(row)
-    return r
-
-
-def get_rr_intervals(peaks):
-    times = []
-    prev = peaks[0]
-    for peak in peaks[1:]:
-        times.append(peak - prev)
-        prev = peak
-    return times
+    return qrs_detect(row)
+    # return qrs_detect2(row, fs=300, thres=0.4, ref_period=0.2)

@@ -1,8 +1,8 @@
 import random
-import numpy as np
+
 import matplotlib.pyplot as plt
 
-from qrs_detect import r_detect
+from qrs_detect import *
 
 plt.rcParams["figure.figsize"] = (20, 4)
 
@@ -12,35 +12,39 @@ np.random.seed(seed)
 print("Seed =", seed)
 
 import loader
-import preprocessing
-import feature_extractor
 
 from qrs_detect2 import *
 
-(X, Y) = loader.load_all_data()
-(Y, mapping) = preprocessing.format_labels(Y)
-print('Input length', len(X))
-print('Categories mapping', mapping)
 
+def plot_with_detected_peaks(row, clazz):
+    r = qrs_detect(normalize_ecg(remove_dc_component(row)))
 
-def plot_with_detected_peaks(row):
-    r = feature_extractor.get_r_peaks_positions(row)
-    # r = qrs_detect2(row, fs=300)
-
-    print('R', r)
+    print('R', len(r), r)
     times = np.diff(r)
-    print(times)
     print(np.mean(times), np.std(times))
+    plt.subplot(2, 1, 1)
     plt.plot(range(len(row)), row, 'g-',
              r, [row[x] for x in r], 'r^')
+    plt.ylabel(clazz + "QRS 1")
+
+    r = qrs_detect2(row, fs=300, thres=0.4, ref_period=0.2)
+
+    print('R', len(r), r)
+    times = np.diff(r)
+    print(np.mean(times), np.std(times))
+    plt.subplot(2, 1, 2)
+    plt.plot(range(len(row)), row, 'g-',
+             r, [row[x] for x in r], 'r^')
+    plt.ylabel(clazz + " QRS 2")
 
     plt.show()
 
+
 # Normal: A00001, A00002, A0003, A00006
-plot_with_detected_peaks(loader.load_data_from_file("A00001"))
+plot_with_detected_peaks(loader.load_data_from_file("A00001"), "Normal")
 # AF: A00004, A00009, A00015, A00027
-plot_with_detected_peaks(loader.load_data_from_file("A00004"))
+plot_with_detected_peaks(loader.load_data_from_file("A00004"), "AF")
 # Other: A00005, A00008, A00013, A00017
-plot_with_detected_peaks(loader.load_data_from_file("A00005"))
+plot_with_detected_peaks(loader.load_data_from_file("A00005"), "Other")
 # Noisy: A00205, A00585, A01006, A01070
-plot_with_detected_peaks(loader.load_data_from_file("A00205"))
+plot_with_detected_peaks(loader.load_data_from_file("A00205"), "Noisy")

@@ -1,4 +1,5 @@
 import random
+
 import numpy as np
 
 from utils import async
@@ -27,7 +28,6 @@ from models import *
 from feature_extractor import *
 
 import numpy as np
-import math
 
 FREQUENCY = 300  # 300 points per second
 WINDOW_SIZE = int(0.8 * FREQUENCY)
@@ -43,6 +43,8 @@ def features_for_row(row):
 
     pqrsts = extract_pqrst(row)
 
+    features.append(len(pqrsts) * 1.0 * FREQUENCY / len(row))
+
     if len(pqrsts) == 0:
         return features + [0 for x in range(5 + 7 * 12)]
 
@@ -52,7 +54,7 @@ def features_for_row(row):
     s = [x[3] for x in pqrsts]
     t = [x[4] for x in pqrsts]
 
-    rrs = get_rr_intervals(r)
+    rrs = np.diff(r)
 
     if len(rrs) > 0:
         features += [

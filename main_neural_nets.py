@@ -3,6 +3,7 @@ import random
 import numpy as np
 
 from utils import logger
+from utils import matlab
 
 logger.log_to_files('nn')
 
@@ -22,8 +23,10 @@ import validation
 
 from models import *
 
+
 def create_training_set(X, Y):
     return feature_extractor.extract_heartbeats(X, Y)
+
 
 FREQUENCY = 300  # 300 points per second
 WINDOW_SIZE = int(3 * FREQUENCY)
@@ -62,12 +65,18 @@ Xt, Xv, Yt, Yv = helper.train_test_split(subX, subY, 0.33)
 Yt = to_categorical(Yt, len(mapping.keys()))
 Yv = to_categorical(Yv, len(mapping.keys()))
 
+model_saver = helper.best_model_saver(impl.name())
+learning_optimizer = helper.model_learning_optimizer()
+learning_stopper = helper.learning_stopper()
 model.fit(Xt, Yt,
           nb_epoch=50,
           validation_data=(Xv, Yv),
           callbacks=[
-              helper.model_saver(impl.name()),
-              helper.model_learning_optimizer(),
-              helper.learning_stopper()
+              model_saver,
+              learning_optimizer,
+              learning_stopper
           ])
+
+model.load_weights(model_saver.filepath)
+
 validation.print_categorical_validation(Yv, model.predict(Xv), categorical=True)

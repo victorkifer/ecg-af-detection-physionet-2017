@@ -23,14 +23,14 @@ def normalize_ecg(ecg):
     return np.array([x / abs_max for x in ecg])
 
 
-def r_detect(ecg):
+def qrs_detect(ecg):
     """
     Based on this article
     http://cnx.org/contents/YR1BUs9_@1/QRS-Detection-Using-Pan-Tompki
 
     :param ecg: ECG signal
     :param fs: signal frequency
-    :return: list, positions of R
+    :return: list, positions of R peaks
     """
     ecg2 = low_pass_filtering(ecg)
     ecg3 = high_pass_filtering(ecg2)

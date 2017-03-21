@@ -5,6 +5,8 @@ import multiprocessing as mp
 from math import fabs
 from random import shuffle
 
+import qrs_detect
+
 
 def normalize(X):
     pool = mp.Pool()
@@ -13,16 +15,9 @@ def normalize(X):
     return x_new
 
 
-def remove_dc_component(ecg):
-    mean = np.mean(ecg)
-    # cancel DC components
-    return np.array([x - mean for x in ecg])
-
 def normalize_ecg(ecg):
-    ecg = remove_dc_component(ecg)
-    # normalize to 1
-    abs_max = max([fabs(x) for x in ecg])
-    return np.array([x / abs_max for x in ecg])
+    ecg = qrs_detect.remove_dc_component(ecg)
+    return qrs_detect.normalize_ecg(ecg)
 
 
 def format_labels(labels):

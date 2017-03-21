@@ -14,8 +14,10 @@ class Tee(object):
     def write(self, message):
         self.__message__ += message
         if '\n' in self.__message__:
-            current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            self.__message__ = current_time + " - " + self.__message__
+            if len(self.__message__.strip()) > 0:
+                current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                self.__message__ = current_time + " - " + self.__message__
+
             self.terminal.write(self.__message__)
             self.logfile.write(self.__message__)
             self.__message__ = ""
