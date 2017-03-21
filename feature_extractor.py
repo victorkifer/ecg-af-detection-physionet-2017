@@ -3,6 +3,7 @@ import multiprocessing as mp
 import numpy as np
 import peakutils
 from pywt import wavedec
+import math
 
 from qrs_detect import *
 
@@ -23,8 +24,7 @@ def trimboth(row, portion):
         abs(np.amax(row))
     )
 
-    return np.array([x if -filter < x < filter else 0 for x in row ])
-
+    return np.array([x if -filter < x < filter else 0 for x in row])
 
 
 def wavelet_coefficients(row):
@@ -38,11 +38,20 @@ def wavelet_coefficients(row):
     m1n = np.mean(d1n)
     s1n = np.std(d1n)
 
+    m2 = np.mean(d2)
+    s2 = np.std(d2)
+    m2n = np.mean(d2n)
+    s2n = np.std(d2n)
+
     return [
         m1n,
         s1n,
         abs(m1n) - abs(m1),
-        abs(s1n) - abs(s1)
+        abs(s1n) - abs(s1),
+        m2n,
+        s2n,
+        abs(m2n) - abs(m2),
+        abs(s2n) - abs(s2)
     ]
 
 
