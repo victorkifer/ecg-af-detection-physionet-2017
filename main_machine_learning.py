@@ -38,10 +38,13 @@ NB_PERIODS = 3
 
 def features_for_row(row):
     features = []
+
+    features += wavelet_coefficients(row)
+
     pqrsts = extract_pqrst(row)
 
     if len(pqrsts) == 0:
-        return np.zeros(5 + 7 * 12)
+        return features + [0 for x in range(5 + 7 * 12)]
 
     p = [x[0] for x in pqrsts]
     q = [x[1] for x in pqrsts]

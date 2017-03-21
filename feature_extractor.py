@@ -2,6 +2,7 @@ import multiprocessing as mp
 
 import numpy as np
 import peakutils
+from pywt import wavedec
 
 from qrs_detect import *
 
@@ -14,6 +15,35 @@ ST_TIME = int(0.3 * FREQUENCY)
 
 BEFORE_R = PR_TIME + QRS_TIME // 2
 AFTER_R = ST_TIME + QRS_TIME // 2
+
+
+def trimboth(row, portion):
+    filter = portion * max(
+        math.fabs(np.amin(row)),
+        abs(np.amax(row))
+    )
+
+    return np.array([x if -filter < x < filter else 0 for x in row ])
+
+
+
+def wavelet_coefficients(row):
+    a, d1, d2 = wavedec(row, 'db1', level=2)
+
+    d1n = trimboth(d1, 0.1)
+    d2n = trimboth(d2, 0.1)
+
+    m1 = np.mean(d1)
+    s1 = np.std(d1)
+    m1n = np.mean(d1n)
+    s1n = np.std(d1n)
+
+    return [
+        m1n,
+        s1n,
+        abs(m1n) - abs(m1),
+        abs(s1n) - abs(s1)
+    ]
 
 
 def extract_heartbeats(X, Y):
