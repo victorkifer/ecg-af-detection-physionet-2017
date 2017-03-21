@@ -41,7 +41,7 @@ def features_for_row(row):
     pqrsts = extract_pqrst(row)
 
     if len(pqrsts) == 0:
-        return np.zeros(4 + 7 * 12)
+        return np.zeros(5 + 7 * 12)
 
     p = [x[0] for x in pqrsts]
     q = [x[1] for x in pqrsts]
@@ -56,10 +56,11 @@ def features_for_row(row):
             np.amin(rrs),
             np.amax(rrs),
             np.mean(rrs),
-            np.std(rrs)
+            np.std(rrs),
+            sum([1 for x in r if x < 0])
         ]
     else:
-        features += [0 for x in range(4)]
+        features += [0 for x in range(5)]
 
     pqrsts = pqrsts[:min(7, len(pqrsts))]
     row = low_pass_filtering(row)
