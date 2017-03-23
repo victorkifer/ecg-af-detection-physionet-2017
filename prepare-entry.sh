@@ -36,13 +36,13 @@ done
 
 echo "==== running setup script ===="
 
-./setup.sh
+#./setup.sh
 
 echo "==== running entry script on validation set ===="
 
 rm -f answers.txt
 
-python3 main_machine_learning.py
+#python3 main_machine_learning.py
 
 mkdir -p outputs/entry
 cp setup.sh outputs/entry/
@@ -53,6 +53,10 @@ cp LICENSE.txt outputs/entry/
 
 mkdir outputs/entry/utils
 cp -R utils/*.py outputs/entry/utils/
+
+mkdir outputs/entry/common
+cp -R common/*.py outputs/entry/common/
+
 cp requirements.txt outputs/entry/
 cp *.py outputs/entry
 mv answers.txt outputs/entry
