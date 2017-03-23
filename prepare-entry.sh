@@ -12,7 +12,6 @@ set -o pipefail
 
 function cleanup {
   echo "Cleaning up"
-  rm -r answers.txt || true
   rm -R outputs/entry || true
 }
 trap cleanup EXIT
@@ -36,13 +35,15 @@ done
 
 echo "==== running setup script ===="
 
-#./setup.sh
+./setup.sh
 
 echo "==== running entry script on validation set ===="
 
+rm -R outputs/entry > /dev/null || true
+rm -r outputs/entry.zip > dev/null || true
 rm -f answers.txt
 
-#python3 main_machine_learning.py
+python3 main_machine_learning.py
 
 mkdir -p outputs/entry
 cp setup.sh outputs/entry/
@@ -59,13 +60,15 @@ cp -R common/*.py outputs/entry/common/
 
 cp requirements.txt outputs/entry/
 cp *.py outputs/entry
-mv answers.txt outputs/entry
+cp answers.txt outputs/entry
 
-cp model.pkl outputs/entry
-cp weights.h5 outputs/entry
+cp model.pkl outputs/entry || true
+cp weights.h5 outputs/entry || true
 
 cp DRYRUN outputs/entry/DRY_RUN
 
 cd outputs/entry
 zip -r ../entry.zip ./
 cd -
+
+echo "Entry was created successfully"
