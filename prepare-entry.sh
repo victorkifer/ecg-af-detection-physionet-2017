@@ -35,15 +35,15 @@ done
 
 echo "==== running setup script ===="
 
-./setup.sh
+#./setup.sh
 
 echo "==== running entry script on validation set ===="
 
 rm -R outputs/entry > /dev/null || true
 rm -r outputs/entry.zip > dev/null || true
-rm -f answers.txt
+#rm -f answers.txt
 
-python3 main_machine_learning.py
+#python3 main_machine_learning.py
 
 mkdir -p outputs/entry
 cp setup.sh outputs/entry/
@@ -51,6 +51,7 @@ cp next.sh outputs/entry/
 
 cp AUTHORS.txt outputs/entry/
 cp LICENSE.txt outputs/entry/
+cp dependencies.txt outputs/entry/
 
 mkdir outputs/entry/utils
 cp -R utils/*.py outputs/entry/utils/

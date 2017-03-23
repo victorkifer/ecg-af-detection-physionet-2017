@@ -9,6 +9,7 @@
 set -e
 set -o pipefail
 
-pip install -r requirements.txt
+virtualenv -p python3 .
+source ./install_dependencies.sh
 
-python3 main_machine_learning.py --train
+#python3 main_machine_learning.py --train
