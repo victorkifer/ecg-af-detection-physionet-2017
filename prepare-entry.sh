@@ -57,6 +57,9 @@ cp requirements.txt outputs/entry/
 cp *.py outputs/entry
 mv answers.txt outputs/entry
 
+cp model.pkl outputs/entry
+cp weights.h5 outputs/entry
+
 cp DRYRUN outputs/entry/DRY_RUN
 
 cd outputs/entry
