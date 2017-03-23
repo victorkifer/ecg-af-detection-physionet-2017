@@ -4,6 +4,7 @@ outputs/
 *.pkl
 validation/
 validation
+answers.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
