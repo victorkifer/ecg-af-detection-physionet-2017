@@ -13,8 +13,6 @@ print("Seed =", seed)
 
 import loader
 
-from qrs_detect2 import *
-
 
 def plot_wavelet(row, clazz):
     a, d1, d2 = wavedec(row, 'db1', level=2)

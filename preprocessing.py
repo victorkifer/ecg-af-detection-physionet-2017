@@ -5,7 +5,21 @@ import multiprocessing as mp
 from math import fabs
 from random import shuffle
 
-import qrs_detect
+from common import qrs_detect
+
+__MAPPING__ = {
+    'A': 0,
+    'N': 1,
+    'O': 2,
+    '~': 3
+}
+
+__REVERSE_MAPPING__ = {
+    0: 'A',
+    1: 'N',
+    2: 'O',
+    3: '~'
+}
 
 
 def normalize(X):
@@ -21,14 +35,11 @@ def normalize_ecg(ecg):
 
 
 def format_labels(labels):
-    original_labels = list(set(labels))
-    original_labels.sort()
+    return [__MAPPING__[x] for x in labels]
 
-    labels = [original_labels.index(x) for x in labels]
-    mapping = dict()
-    for i in range(len(original_labels)):
-        mapping[i] = original_labels[i]
-    return (labels, mapping)
+
+def get_original_label(category):
+    return __REVERSE_MAPPING__[category]
 
 
 def convolution(signal, window_size, step, fadein=0, fadeout=0):

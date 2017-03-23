@@ -1,39 +1,19 @@
-import random
+import argparse
+import csv
 
-import numpy as np
-
-from utils import async
-from utils import logger
-
-logger.log_to_files('ml')
-
-# seed = int(random.random() * 1e6)
+from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
-
-seed = 42
-random.seed(seed)
-np.random.seed(seed)
-print("Seed =", seed)
+from sklearn.externals import joblib
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.model_selection import train_test_split
 
 import loader
 import preprocessing
-import keras_helper as helper
-
-from scipy import stats
-
-from sklearn.metrics import confusion_matrix, accuracy_score
-
-from models import *
-
-from feature_extractor import *
-
-import numpy as np
-
-FREQUENCY = 300  # 300 points per second
-WINDOW_SIZE = int(0.8 * FREQUENCY)
-STEP = int(0.2 * FREQUENCY)
-FADEIN = int(1.5 * FREQUENCY)
-NB_PERIODS = 3
+from common.qrs_detect import *
+from feature_extractor import wavelet_coefficients, extract_pqrst
+from utils import async
+from utils import logger
+from utils.common import set_seed
 
 
 def features_for_row(row):
@@ -43,7 +23,7 @@ def features_for_row(row):
 
     pqrsts = extract_pqrst(row)
 
-    features.append(len(pqrsts) * 1.0 * FREQUENCY / len(row))
+    features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
 
     if len(pqrsts) == 0:
         return features + [0 for x in range(5 + 7 * 12)]
@@ -106,36 +86,94 @@ def features_for_row(row):
     return features
 
 
-(X, Y) = loader.load_all_data()
-X = preprocessing.normalize(X)
-(Y, mapping) = preprocessing.format_labels(Y)
-print('Input length', len(X))
-print('Categories mapping', mapping)
+def train(data_dir, model_file):
+    (X, Y) = loader.load_all_data(data_dir)
+    X = preprocessing.normalize(X)
+    Y = preprocessing.format_labels(Y)
+    print('Input length', len(X))
+    print('Categories mapping', preprocessing.__MAPPING__)
 
-subX = X
-subY = Y
+    subX = X
+    subY = Y
 
-print("Features extraction started")
-subX = async.apply_async(subX, features_for_row)
-print("Features extraction finished")
-subY = subY
+    print("Features extraction started")
+    subX = async.apply_async(subX, features_for_row)
+    print("Features extraction finished")
+    subY = subY
 
-from collections import Counter
+    from collections import Counter
 
-print("Distribution of categories before balancing")
-counter = Counter(subY)
-for key in counter.keys():
-    print(key, counter[key])
+    print("Distribution of categories before balancing")
+    counter = Counter(subY)
+    for key in counter.keys():
+        print(key, counter[key])
 
-Xt, Xv, Yt, Yv = helper.train_test_split(subX, subY, 0.33)
+    Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.33)
 
-model = RandomForestClassifier(n_estimators=20, n_jobs=mp.cpu_count())
-model.fit(Xt, Yt)
-print(model.feature_importances_)
+    model = RandomForestClassifier(n_estimators=20, n_jobs=async.get_number_of_jobs())
+    model.fit(Xt, Yt)
+    print(model.feature_importances_)
 
-Ypredicted = model.predict(Xv)
+    joblib.dump(model, model_file)
 
-accuracy = accuracy_score(Yv, Ypredicted)
-print(accuracy)
-matrix = confusion_matrix(Yv, Ypredicted)
-print(matrix)
+    Ypredicted = model.predict(Xv)
+
+    accuracy = accuracy_score(Yv, Ypredicted)
+    print(accuracy)
+    matrix = confusion_matrix(Yv, Ypredicted)
+    print(matrix)
+
+
+def load_model(model_file):
+    return joblib.load(model_file)
+
+
+def classify(model, record, data_dir, model_file):
+    x = loader.load_data_from_file(record, data_dir)
+    x = features_for_row(x)
+
+    # as we have one sample at a time to predict, we should resample it into 2d array to classify
+    x = np.array(x).reshape(1, -1)
+
+    return preprocessing.get_original_label(model.predict(x)[0])
+
+
+def classify_all(data_dir, model_file):
+    model = joblib.load(model_file)
+    with open(data_dir + '/RECORDS', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in reader:
+            file_name = row[0]
+            label = classify(model, file_name, data_dir, model_file)
+
+            print(file_name, label)
+
+            with open("answers.txt", "a") as f:
+                f.write(file_name + "," + label + "\n")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="ECG classifier")
+    parser.add_argument("-r", "--record", default="", help="record to classify")
+    parser.add_argument("-d", "--dir", default="validation", help="dir with validation files")
+    parser.add_argument('--train', dest='train', action='store_true')
+    parser.set_defaults(train=False)
+    parser.add_argument('--nofilelog', dest='filelog', action='store_false')
+    parser.set_defaults(filelog=True)
+    args = parser.parse_args()
+
+    logger.enable_logging('ml', args.filelog)
+    set_seed(42)
+
+    model_file = "model.pkl"
+
+    if args.train:
+        train(args.dir, model_file)
+    elif len(args.record) > 0:
+        model = joblib.load(model_file)
+        label = classify(model, args.record, args.dir, model_file)
+
+        with open("answers.txt", "a") as f:
+            f.write(args.record + "," + label + "\n")
+    else:
+        classify_all(args.dir, model_file)

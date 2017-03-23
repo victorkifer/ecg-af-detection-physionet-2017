@@ -1,5 +1,9 @@
 # Project specific files
 outputs/
+*.h5
+*.pkl
+validation/
+validation
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

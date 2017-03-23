@@ -1,9 +1,9 @@
 import random
-import numpy as np
+
 import matplotlib.pyplot as plt
 
 import loader
-from qrs_detect import *
+from common.qrs_detect import *
 
 plt.rcParams["figure.figsize"] = (20, 8)
 

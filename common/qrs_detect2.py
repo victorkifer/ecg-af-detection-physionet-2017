@@ -104,7 +104,7 @@ def qrs_detect2(ecg, thres=0.6, ref_period=0.25, fs=300):
             indEnd = [indAboveThreshold[i + 1] for i in indMissedBeat]
 
             for i in range(len(indStart)):
-                # llok for a peak on this interval by lowering the energy threshold
+                # look for a peak on this interval by lowering the energy threshold
                 poss_reg[indStart[i]:indEnd[i]] = apply(mdfint[indStart[i]:indEnd[i]],
                                                         lambda x: x > 0.5 * thres * en_thres)
 

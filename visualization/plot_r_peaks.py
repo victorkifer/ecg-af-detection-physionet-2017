@@ -2,7 +2,7 @@ import random
 
 import matplotlib.pyplot as plt
 
-from qrs_detect import *
+from common.qrs_detect import *
 
 plt.rcParams["figure.figsize"] = (20, 4)
 
@@ -13,7 +13,7 @@ print("Seed =", seed)
 
 import loader
 
-from qrs_detect2 import *
+from common.qrs_detect2 import *
 
 
 def plot_with_detected_peaks(row, clazz):

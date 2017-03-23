@@ -10,3 +10,5 @@ set -e
 set -o pipefail
 
 pip install -r requirements.txt
+
+python3 main_machine_learning.py --train

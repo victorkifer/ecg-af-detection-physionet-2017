@@ -23,4 +23,4 @@ set -o pipefail
 
 RECORD=$1
 
-python3 classify.py -r $RECORD
+python3 main_machine_learning.py --record $RECORD --nofilelog

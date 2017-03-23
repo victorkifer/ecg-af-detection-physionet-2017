@@ -16,7 +16,7 @@ def extract_validation(trueY, predY, categorical=False):
     return (accuracy, accuracies, matrix)
 
 
-def print_categorical_validation(trueY, predY, categorical=False):
+def print_validation_info(trueY, predY, categorical=False):
     (accuracy, accuracies, matrix) = extract_validation(trueY, predY, categorical)
 
     print('Confusion matrix:')

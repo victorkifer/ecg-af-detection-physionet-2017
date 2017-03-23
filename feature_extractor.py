@@ -2,8 +2,7 @@ import multiprocessing as mp
 
 from pywt import wavedec
 
-from qrs_detect import *
-from qrs_detect2 import qrs_detect2
+from common.qrs_detect import *
 
 FREQUENCY = 300
 MIN_HEARTBEAT_TIME = int(0.4 * FREQUENCY)
