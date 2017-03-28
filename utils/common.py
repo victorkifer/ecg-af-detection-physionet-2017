@@ -1,6 +1,7 @@
 import random
 import numpy as np
 
+from scipy import stats
 
 def set_seed(seed=None):
     if seed is None:
@@ -8,3 +9,7 @@ def set_seed(seed=None):
     random.seed(seed)
     np.random.seed(seed)
     print("Seed =", seed)
+
+
+def mode(a):
+    return stats.mode(a, axis=None)[0][0]

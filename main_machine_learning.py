@@ -3,19 +3,22 @@
 import argparse
 import csv
 
-from scipy import stats
+from scipy.stats import stats
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.model_selection import train_test_split
 
 import loader
 import preprocessing
 from common.qrs_detect import *
 from feature_extractor import wavelet_coefficients, extract_pqrst
 from utils import async
+from utils import common
 from utils import logger
 from utils.common import set_seed
+
+NB_RR = 60
 
 
 def features_for_row(row):
@@ -28,7 +31,7 @@ def features_for_row(row):
     features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
 
     if len(pqrsts) == 0:
-        return features + [0 for x in range(5 + 7 * 12)]
+        return features + [0 for x in range(5 + NB_RR * 12)]
 
     p = [x[0] for x in pqrsts]
     q = [x[1] for x in pqrsts]
@@ -49,7 +52,7 @@ def features_for_row(row):
     else:
         features += [0 for x in range(5)]
 
-    pqrsts = pqrsts[:min(7, len(pqrsts))]
+    pqrsts = pqrsts[:min(NB_RR, len(pqrsts))]
     row = low_pass_filtering(row)
     row = high_pass_filtering(row)
     row = derivative_filter(row)
@@ -68,21 +71,21 @@ def features_for_row(row):
             pmax / row[r[i]],
             np.mean(pq),
             np.std(pq),
-            stats.mode(pq).mode[0],
+            common.mode(pq),
 
             # feature for ST interval
             tmax,
             tmax / row[r[i]],
             np.mean(st),
             np.std(st),
-            stats.mode(st).mode[0],
+            common.mode(st),
 
             # features for whole PQRST interval
             stats.skew(pt),
             stats.kurtosis(pt)
         ]
 
-    for i in range(7 - len(pqrsts)):
+    for i in range(NB_RR - len(pqrsts)):
         features += [0 for x in range(12)]
 
     return features
@@ -100,6 +103,9 @@ def train(data_dir, model_file):
 
     print("Features extraction started")
     subX = async.apply_async(subX, features_for_row)
+
+    np.savez('outputs/processed.npz', x=subX, y=subY)
+
     print("Features extraction finished")
     subY = subY
 
@@ -121,8 +127,9 @@ def train(data_dir, model_file):
     Ypredicted = model.predict(Xv)
 
     accuracy = accuracy_score(Yv, Ypredicted)
-    print(accuracy)
+    print('Accuracy', accuracy)
     matrix = confusion_matrix(Yv, Ypredicted)
+    print('Confusion matrix')
     print(matrix)
 
 
@@ -130,7 +137,7 @@ def load_model(model_file):
     return joblib.load(model_file)
 
 
-def classify(model, record, data_dir, model_file):
+def classify(model, record, data_dir):
     x = loader.load_data_from_file(record, data_dir)
     x = features_for_row(x)
 
@@ -146,7 +153,7 @@ def classify_all(data_dir, model_file):
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
         for row in reader:
             file_name = row[0]
-            label = classify(model, file_name, data_dir, model_file)
+            label = classify(model, file_name, data_dir)
 
             print(file_name, label)
 
@@ -156,24 +163,26 @@ def classify_all(data_dir, model_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ECG classifier")
-    parser.add_argument("-r", "--record", default="", help="record to classify")
+    parser.add_argument("-r", "--record", default=None, help="record to classify")
     parser.add_argument("-d", "--dir", default="validation", help="dir with validation files")
     parser.add_argument('--train', dest='train', action='store_true')
     parser.set_defaults(train=False)
-    parser.add_argument('--nofilelog', dest='filelog', action='store_false')
-    parser.set_defaults(filelog=True)
     args = parser.parse_args()
 
-    logger.enable_logging('ml', args.filelog)
+    if args.train:
+        logger.enable_logging('ml', True)
+    else:
+        logger.enable_logging('ml', False)
+
     set_seed(42)
 
     model_file = "model.pkl"
 
     if args.train:
         train(args.dir, model_file)
-    elif len(args.record) > 0:
+    elif args.record is not None:
         model = joblib.load(model_file)
-        label = classify(model, args.record, args.dir, model_file)
+        label = classify(model, args.record, args.dir)
 
         with open("answers.txt", "a") as f:
             f.write(args.record + "," + label + "\n")

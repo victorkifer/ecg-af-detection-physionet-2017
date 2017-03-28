@@ -23,4 +23,4 @@ set -o pipefail
 
 RECORD=$1
 
-source ./main_machine_learning.py --record $RECORD --nofilelog
+python3 main_machine_learning.py --record $RECORD --dir `pwd`

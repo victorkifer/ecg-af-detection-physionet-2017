@@ -10,7 +10,7 @@ import feature_extractor
 import keras_helper as helper
 import loader
 import preprocessing
-import validation
+import evaluation
 from models import *
 from utils import logger
 from utils.common import set_seed
@@ -79,7 +79,7 @@ def train(data_dir, model_file):
 
     copy_file(model_saver.filepath, model_file)
 
-    validation.print_validation_info(Yv, model.predict(Xv), categorical=True)
+    evaluation.print_validation_info(Yv, model.predict(Xv), categorical=True)
 
 
 def classify(file, data_dir, model_file):
@@ -92,7 +92,7 @@ def classify(file, data_dir, model_file):
     model = impl.model
     model.load_weights(model_file)
 
-    return preprocessing.get_original_label(validation.from_categorical(model.predict(x)))
+    return preprocessing.get_original_label(evaluation.from_categorical(model.predict(x)))
 
 
 def classify_all(data_dir, model_file):
@@ -114,11 +114,13 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dir", default="validation", help="dir with validation files")
     parser.add_argument('--train', dest='train', action='store_true', help="perform training")
     parser.set_defaults(train=False)
-    parser.add_argument('--nofilelog', dest='filelog', action='store_false', help="disables file logging")
-    parser.set_defaults(filelog=True)
     args = parser.parse_args()
 
-    logger.enable_logging('nn', args.filelog)
+    if args.train:
+        logger.enable_logging('nn', True)
+    else:
+        logger.enable_logging('nn', False)
+
     set_seed(42)
 
     model_file = "weight.h5"

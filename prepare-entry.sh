@@ -10,28 +10,16 @@
 set -e
 set -o pipefail
 
+FAILED=YES
+
 function cleanup {
-  echo "Cleaning up"
-  rm -R outputs/entry || true
+    if [ "$FAILED" = "YES" ]; then
+        >&2 echo "An error occurred while preparing entry"
+    fi
+    echo "Cleaning up"
+    rm -R outputs/entry || true
 }
 trap cleanup EXIT
-
-for i in "$@"
-do
-case $i in
-    -m=*|--model=*)
-    MODEL="${i#*=}"
-    shift # past argument=value
-    ;;
-    --dry-run)
-    DRY_RUN=YES
-    shift # past argument with no value
-    ;;
-    *)
-            # unknown option
-    ;;
-esac
-done
 
 echo "==== running setup script ===="
 
@@ -39,8 +27,8 @@ echo "==== running setup script ===="
 
 echo "==== running entry script on validation set ===="
 
-rm -R outputs/entry > /dev/null || true
-rm -r outputs/entry.zip > dev/null || true
+rm -R outputs/entry >/dev/null 2>&1 || true
+rm -r outputs/entry.zip >/dev/null 2>&1 || true
 #rm -f answers.txt
 
 #python3 main_machine_learning.py
@@ -59,17 +47,24 @@ cp -R utils/*.py outputs/entry/utils/
 mkdir outputs/entry/common
 cp -R common/*.py outputs/entry/common/
 
-cp requirements.txt outputs/entry/
 cp *.py outputs/entry
 cp answers.txt outputs/entry
 
 cp model.pkl outputs/entry || true
 cp weights.h5 outputs/entry || true
 
-cp DRYRUN outputs/entry/DRY_RUN
+cp -R packages outputs/entry/packages
+
+read -p "Is this a dry-run entry? " -n 1 -r
+echo    # (optional) move to a new line
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+    cp DRYRUN outputs/entry/DRY_RUN
+fi
 
 cd outputs/entry
 zip -r ../entry.zip ./
 cd -
 
 echo "Entry was created successfully"
+FAILED=NO

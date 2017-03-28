@@ -1,6 +1,5 @@
 h5py
 Keras
-matplotlib
 numpy
 PyWavelets
 scikit-learn
