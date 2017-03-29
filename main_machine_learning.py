@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import confusion_matrix, accuracy_score
 
+import evaluation
 import loader
 import preprocessing
 from common.qrs_detect import *
@@ -126,11 +127,7 @@ def train(data_dir, model_file):
 
     Ypredicted = model.predict(Xv)
 
-    accuracy = accuracy_score(Yv, Ypredicted)
-    print('Accuracy', accuracy)
-    matrix = confusion_matrix(Yv, Ypredicted)
-    print('Confusion matrix')
-    print(matrix)
+    evaluation.print_validation_info(Yv, Ypredicted)
 
 
 def load_model(model_file):
@@ -139,6 +136,7 @@ def load_model(model_file):
 
 def classify(model, record, data_dir):
     x = loader.load_data_from_file(record, data_dir)
+    x = normalize_ecg(x)
     x = features_for_row(x)
 
     # as we have one sample at a time to predict, we should resample it into 2d array to classify

@@ -1,30 +1,15 @@
-from sklearn.metrics import confusion_matrix, accuracy_score
-
-
-def extract_validation(trueY, predY, categorical=False):
-    correct = from_categorical(trueY) if categorical else trueY
-    predicted = from_categorical(predY) if categorical else predY
-
-    matrix = confusion_matrix(correct, predicted)
-    accuracy = accuracy_score(correct, predicted)
-
-    accuracies = []
-    for i in range(matrix.shape[0]):
-        total = max(1, sum(matrix[i]))
-        accuracies.append(matrix[i][i] / total)
-
-    return (accuracy, accuracies, matrix)
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 
 
 def print_validation_info(trueY, predY, categorical=False):
-    (accuracy, accuracies, matrix) = extract_validation(trueY, predY, categorical)
+    trueY = from_categorical(trueY) if categorical else trueY
+    predY = from_categorical(predY) if categorical else predY
+
+    print(classification_report(trueY, predY))
 
     print('Confusion matrix:')
-    print(matrix)
-    for i in range(len(accuracies)):
-        print('Accuracy for', i, 'is', accuracies[i])
-
-    print('Accuracy', accuracy)
+    print(confusion_matrix(trueY, predY))
 
 
 def from_categorical(y):
