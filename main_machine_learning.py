@@ -2,12 +2,14 @@
 
 import argparse
 import csv
+from functools import partial
 
 from scipy.stats import stats
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.svm import SVC
 
 import evaluation
 import loader
@@ -17,9 +19,21 @@ from feature_extractor import wavelet_coefficients, extract_pqrst
 from utils import async
 from utils import common
 from utils import logger
+from utils import matlab
 from utils.common import set_seed
 
-NB_RR = 60
+NB_RR = 80
+
+
+def rr_diff(rrs):
+    rr_d = []
+    rr_sqd = []
+
+    for i in range(1, len(rrs)):
+        rr_d.append(abs(rrs[i - 1] - rrs[i]))
+        rr_sqd.append(pow(rrs[i - 1] - rrs[i], 2))
+
+    return rr_d, rr_sqd
 
 
 def features_for_row(row):
@@ -32,7 +46,7 @@ def features_for_row(row):
     features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
 
     if len(pqrsts) == 0:
-        return features + [0 for x in range(5 + NB_RR * 12)]
+        return features + [0 for x in range(10 + NB_RR * 13)]
 
     p = [x[0] for x in pqrsts]
     q = [x[1] for x in pqrsts]
@@ -40,18 +54,39 @@ def features_for_row(row):
     s = [x[3] for x in pqrsts]
     t = [x[4] for x in pqrsts]
 
+    r_val = [row[i] for i in r]
+    features.append(np.mean(r_val))
+    features.append(np.std(r_val))
+
     rrs = np.diff(r)
 
     if len(rrs) > 0:
+        mean = np.mean(rrs)
+        original_len = len(rrs)
+        rrs = matlab.select(rrs, lambda x: 0.5 * mean < x < 1.5 * mean)
+        features.append(len(rrs) / original_len)
+    else:
+        features.append(0)
+
+    if len(rrs) > 0:
+        (rr_d, rr_sqd) = rr_diff(rrs)
+        sdsd = 0
+        rmssd = 0
+        if len(rr_d) > 0:
+            sdsd = np.std(rr_d)
+            rmssd = np.sqrt(np.mean(rr_sqd))
+
         features += [
             np.amin(rrs),
             np.amax(rrs),
             np.mean(rrs),
             np.std(rrs),
+            sdsd,
+            rmssd,
             sum([1 for x in r if x < 0])
         ]
     else:
-        features += [0 for x in range(5)]
+        features += [0 for x in range(7)]
 
     pqrsts = pqrsts[:min(NB_RR, len(pqrsts))]
     row = low_pass_filtering(row)
@@ -66,20 +101,25 @@ def features_for_row(row):
         pmax = np.amax(pq)
         tmax = np.amax(st)
 
+        p_mean = np.mean(pq)
+        t_mean = np.mean(st)
+
         features += [
             # features for PQ interval
             pmax,
             pmax / row[r[i]],
-            np.mean(pq),
+            p_mean,
             np.std(pq),
             common.mode(pq),
 
             # feature for ST interval
             tmax,
             tmax / row[r[i]],
-            np.mean(st),
+            t_mean,
             np.std(st),
             common.mode(st),
+
+            p_mean / t_mean,
 
             # features for whole PQRST interval
             stats.skew(pt),
@@ -87,7 +127,7 @@ def features_for_row(row):
         ]
 
     for i in range(NB_RR - len(pqrsts)):
-        features += [0 for x in range(12)]
+        features += [0 for x in range(13)]
 
     return features
 
@@ -107,6 +147,10 @@ def train(data_dir, model_file):
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
+    # file = np.load('outputs/processed.npz')
+    # subX = file['x']
+    # subY = file['y']
+
     print("Features extraction finished")
     subY = subY
 
@@ -117,11 +161,10 @@ def train(data_dir, model_file):
     for key in counter.keys():
         print(key, counter[key])
 
-    Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.33)
+    Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 
-    model = RandomForestClassifier(n_estimators=20, n_jobs=async.get_number_of_jobs())
+    model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     model.fit(Xt, Yt)
-    print(model.feature_importances_)
 
     joblib.dump(model, model_file)
 
@@ -134,7 +177,7 @@ def load_model(model_file):
     return joblib.load(model_file)
 
 
-def classify(model, record, data_dir):
+def classify(record, clf, data_dir):
     x = loader.load_data_from_file(record, data_dir)
     x = normalize_ecg(x)
     x = features_for_row(x)
@@ -142,21 +185,21 @@ def classify(model, record, data_dir):
     # as we have one sample at a time to predict, we should resample it into 2d array to classify
     x = np.array(x).reshape(1, -1)
 
-    return preprocessing.get_original_label(model.predict(x)[0])
+    return preprocessing.get_original_label(clf.predict(x)[0])
 
 
 def classify_all(data_dir, model_file):
     model = joblib.load(model_file)
     with open(data_dir + '/RECORDS', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in reader:
-            file_name = row[0]
-            label = classify(model, file_name, data_dir)
 
-            print(file_name, label)
+        func = partial(classify, clf=model, data_dir=data_dir)
+        names = [row[0] for row in reader]
+        labels = async.apply_async(names, func)
 
-            with open("answers.txt", "a") as f:
-                f.write(file_name + "," + label + "\n")
+        with open("answers.txt", "a") as f:
+            for (name, label) in zip(names, labels):
+                f.write(name + "," + label + "\n")
 
 
 if __name__ == "__main__":
@@ -167,11 +210,7 @@ if __name__ == "__main__":
     parser.set_defaults(train=False)
     args = parser.parse_args()
 
-    if args.train:
-        logger.enable_logging('ml', True)
-    else:
-        logger.enable_logging('ml', False)
-
+    logger.enable_logging('ml', args.train)
     set_seed(42)
 
     model_file = "model.pkl"
@@ -180,7 +219,7 @@ if __name__ == "__main__":
         train(args.dir, model_file)
     elif args.record is not None:
         model = joblib.load(model_file)
-        label = classify(model, args.record, args.dir)
+        label = classify(args.record, model, args.dir)
 
         with open("answers.txt", "a") as f:
             f.write(args.record + "," + label + "\n")

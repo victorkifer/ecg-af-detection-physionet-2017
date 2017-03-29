@@ -2,7 +2,7 @@ import multiprocessing as mp
 
 
 def get_number_of_jobs():
-    return mp.cpu_count()
+    return int(mp.cpu_count() * 1.5)
 
 
 def apply_async(array, func):

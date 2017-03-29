@@ -116,11 +116,7 @@ if __name__ == "__main__":
     parser.set_defaults(train=False)
     args = parser.parse_args()
 
-    if args.train:
-        logger.enable_logging('nn', True)
-    else:
-        logger.enable_logging('nn', False)
-
+    logger.enable_logging('nn', args.train)
     set_seed(42)
 
     model_file = "weight.h5"

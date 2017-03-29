@@ -68,7 +68,7 @@ def extract_heartbeats(X, Y):
 
 
 def extract_heartbeats_for_row(ecg):
-    r = get_r_peaks_positions(ecg, fs=300, thres=0.4, ref_period=0.2)
+    r = get_r_peaks_positions(ecg)
     beats = []
     for peak in r:
         start = peak - BEFORE_R

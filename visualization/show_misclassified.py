@@ -2,6 +2,9 @@ import csv
 from collections import Counter
 
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+
 plt.rcParams["figure.figsize"] = (20, 6)
 
 import loader
@@ -25,18 +28,18 @@ with open('../answers.txt') as predicted, \
 
         if p != c:
             print(record, 'was classified as', pred_label, 'but should be', true_label)
-        else:
-            acc[true_label] = acc.get(true_label, 0) + 1
 
-    total = Counter(ytrue)
+    print(classification_report(ytrue, ypred))
 
-    f_score = []
-    for key in total.keys():
-        f = acc.get(key, 0) / total[key]
-        print(key, f)
-        f_score.append(f)
+    matrix = confusion_matrix(ytrue, ypred)
+    print(matrix)
+    for row in matrix:
+        amax = sum(row)
+        if amax > 0:
+            for i in range(len(row)):
+                row[i] = row[i] * 100.0 / amax
 
-    print('Final score', sum(f_score) / len(f_score))
+    print(matrix)
 
     while (True):
         name = input("Enter an entry name to plot: ")
