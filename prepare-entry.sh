@@ -34,8 +34,11 @@ rm -r outputs/entry.zip >/dev/null 2>&1 || true
 #python3 main_machine_learning.py
 
 mkdir -p outputs/entry
-cp setup.sh outputs/entry/
-cp next.sh outputs/entry/
+cp setup_ml.sh outputs/entry/setup.sh
+cp next_ml.sh outputs/entry/next.sh
+
+#cp setup_nn.sh outputs/entry/setup.sh
+#cp next_nn.sh outputs/entry/next.sh
 
 cp AUTHORS.txt outputs/entry/
 cp LICENSE.txt outputs/entry/

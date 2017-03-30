@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import os
 from functools import partial
 
 from scipy.stats import stats
@@ -224,4 +225,10 @@ if __name__ == "__main__":
         with open("answers.txt", "a") as f:
             f.write(args.record + "," + label + "\n")
     else:
-        classify_all(args.dir, model_file)
+        if os.path.exists("answers.txt"):
+            yesno = input("answers.txt already exists, clean it? [y/n]").lower()
+            if yesno == "yes" or yesno == "y":
+                open('file.txt', 'w').close()
+                classify_all(args.dir, model_file)
+        else:
+            classify_all(args.dir, model_file)
