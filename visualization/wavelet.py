@@ -1,3 +1,7 @@
+"""
+This script plots the wavelet of the signal with details
+"""
+
 import random
 
 import matplotlib.pyplot as plt

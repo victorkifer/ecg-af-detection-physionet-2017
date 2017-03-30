@@ -1,3 +1,14 @@
+"""
+Reads answers.txt file and REFERENCE.csv file
+and compares correct labes with predicted
+Than outputs the list of wrongly classified training samples
+
+NOTE:
+    this script provides you an ability to plot wrongly classified entries
+NOTE:
+    make sure you have generated the answers.txt file
+"""
+
 import csv
 from collections import Counter
 

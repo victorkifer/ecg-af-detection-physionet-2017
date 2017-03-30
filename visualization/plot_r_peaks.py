@@ -1,3 +1,10 @@
+"""
+Plots records and detected R peaks
+applying both QRS detection algorithms
+
+See common/qrs_detect.py, common/qrs_detect2.py
+"""
+
 import random
 
 import matplotlib.pyplot as plt

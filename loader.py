@@ -8,6 +8,11 @@ FREQUENCY = 300
 
 
 def load_all_data(data_path=__DATA_DIR):
+    """
+    Loads all the dataset
+    :param data_path: directory where the dataset is located
+    :return: tuple of (array of row records, array of labels)
+    """
     (data, labels) = __load_data(data_path)
     return preprocessing.shuffle_data(data, labels)
 
