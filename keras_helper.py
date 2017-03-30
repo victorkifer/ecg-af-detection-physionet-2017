@@ -1,5 +1,5 @@
 import math
-
+import numpy as np
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
 from utils.system import mkdir
@@ -43,7 +43,7 @@ def get_class_weights(Y, mu=0.8):
     :return: class weights dictionary
     """
     train_categories_dist = dict()
-    labels = set(Y)
+    labels = np.unique(Y)
     for label in labels:
         train_occurancies = sum([1 if label == y else 0 for y in Y])
         train_categories_dist[label] = train_occurancies

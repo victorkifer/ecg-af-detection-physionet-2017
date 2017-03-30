@@ -1,5 +1,6 @@
 import multiprocessing as mp
 
+import numpy as np
 from pywt import wavedec
 
 from common.qrs_detect import *
@@ -13,43 +14,6 @@ ST_TIME = int(0.3 * FREQUENCY)
 
 BEFORE_R = PR_TIME + QRS_TIME // 2
 AFTER_R = ST_TIME + QRS_TIME // 2
-
-
-def trimboth(row, portion):
-    filter = portion * max(
-        fabs(np.amin(row)),
-        abs(np.amax(row))
-    )
-
-    return np.array([x if -filter < x < filter else 0 for x in row])
-
-
-def wavelet_coefficients(row):
-    a, d1, d2 = wavedec(row, 'db1', level=2)
-
-    d1n = trimboth(d1, 0.1)
-    d2n = trimboth(d2, 0.1)
-
-    m1 = np.mean(d1)
-    s1 = np.std(d1)
-    m1n = np.mean(d1n)
-    s1n = np.std(d1n)
-
-    m2 = np.mean(d2)
-    s2 = np.std(d2)
-    m2n = np.mean(d2n)
-    s2n = np.std(d2n)
-
-    return [
-        m1n,
-        s1n,
-        abs(m1n) - abs(m1),
-        abs(s1n) - abs(s1),
-        m2n,
-        s2n,
-        abs(m2n) - abs(m2),
-        abs(s2n) - abs(s2)
-    ]
 
 
 def extract_heartbeats(X, Y):
@@ -78,38 +42,6 @@ def extract_heartbeats_for_row(ecg):
         if end > len(ecg):
             continue
         beats.append(ecg[start:end])
-    return beats
-
-
-def extract_pqrst(row):
-    PR = 0.16
-    QRS = 0.1
-    QT = 0.44
-    QR = QRS / 2
-    RS = QRS / 2
-    ST = QT - QRS
-    PQ = PR - QR
-
-    PR = int(PR * FREQUENCY)
-    QRS = int(QRS * FREQUENCY)
-    QT = int(QT * FREQUENCY)
-    QR = int(QR * FREQUENCY)
-    RS = int(RS * FREQUENCY)
-    ST = int(ST * FREQUENCY)
-    PQ = int(PQ * FREQUENCY)
-
-    r = get_r_peaks_positions(row)
-    beats = []
-    for R in r:
-        start = R - PR
-        if start < 0:
-            continue
-        end = R + RS + ST
-        if end > len(row):
-            continue
-
-        pqrst = (R - PR, R - QR, R, R + RS, R + RS + ST)
-        beats.append(pqrst)
     return beats
 
 

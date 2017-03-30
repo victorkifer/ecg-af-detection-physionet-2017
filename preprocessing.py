@@ -6,6 +6,7 @@ from math import fabs
 from random import shuffle
 
 from common import qrs_detect
+from utils import matlab
 
 __MAPPING__ = {
     'A': 0,
@@ -20,6 +21,28 @@ __REVERSE_MAPPING__ = {
     2: 'O',
     3: '~'
 }
+
+
+def numpy_set_length(a, length, value=0):
+    size = a.shape[0]
+    if size > length:
+        return a[:length]
+    elif size == length:
+        return a
+    else:
+        diff = length - size
+        append = np.zeros(diff, dtype=np.float32)
+        append.fill(value)
+        return np.append(a, append)
+
+
+def trimboth(row, portion):
+    filter = portion * max(
+        fabs(np.amin(row)),
+        abs(np.amax(row))
+    )
+
+    return np.array([x if -filter < x < filter else 0 for x in row])
 
 
 def normalize(X):
@@ -63,11 +86,6 @@ def convolution(signal, window_size, step, fadein=0, fadeout=0):
     return output
 
 
-def denoise(row, lvl):
-    info = wavedec(row, 'db1', level=lvl)[0]
-    return info
-
-
 def shuffle_data(data, labels):
     """
     Shuffles input data
@@ -86,35 +104,22 @@ def shuffle_data(data, labels):
     return (np.array(data_shuf), labels_shuf)
 
 
-def balance_data(X, Y, class_weights):
-    nX = []
-    nY = []
+def balance(x, y):
+    uniq = np.unique(y)
 
-    examples = dict()
-    for key in class_weights.keys():
-        examples[key] = [x for (x, y) in zip(X, Y) if y == key]
+    selected = dict()
 
-    for key in examples.keys():
-        weight = class_weights[key]
-        while weight >= 1.0:
-            nX += examples[key]
-            nY += [key for i in range(len(examples[key]))]
-            weight -= 1
-        extra = int(weight * len(examples[key]))
-        if extra > 0:
-            nX += examples[key][:extra]
-            nY += [key for i in range(extra)]
+    for val in uniq:
+        selected[val] = [x[i] for i in matlab.find(y, lambda v: v == val)]
 
-    return shuffle_data(nX, nY)
+    min_len = min([len(x) for x in selected.values()])
 
+    x = []
+    y = []
+    for (key, value) in selected.items():
+        x += value[:min_len]
+        y += [key for i in range(min_len)]
 
-def embedding(row):
-    """
-    Normalizes the data base on max value into array in range of [0. 1.]
-    :param row: original data
-    :return: array of length of row normalized in range of [0. 1.]
-    """
-    amax = np.amax(row)
-    amin = np.amin(row)
-    abs = float(max(fabs(amin), fabs(amax)))
-    return np.array([x / abs for x in row])
+    x, y = shuffle_data(x, y)
+
+    return x, y
