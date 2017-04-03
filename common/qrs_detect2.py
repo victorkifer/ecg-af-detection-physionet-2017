@@ -106,10 +106,15 @@ def qrs_detect2(ecg, thres=0.6, ref_period=0.25, fs=300):
             for i in range(len(indStart)):
                 # look for a peak on this interval by lowering the energy threshold
                 poss_reg[indStart[i]:indEnd[i]] = apply(mdfint[indStart[i]:indEnd[i]],
-                                                        lambda x: x > 0.5 * thres * en_thres)
+                                                        lambda x: x > 0.3 * thres * en_thres)
 
         left = find(diff(np.append([0], np.transpose(poss_reg))), lambda x: x == 1)
         right = find(diff(np.append(np.transpose(poss_reg), [0])), lambda x: x == -1)
+
+        all = [(left, right) for left, right in zip(left, right) if left != right]
+
+        left = [x[0] for x in all]
+        right = [x[1] for x in all]
 
         nb_s = len(apply(left, lambda x: x < 30 * fs))
         loc = np.zeros(nb_s, dtype=np.int32)
