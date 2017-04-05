@@ -10,7 +10,7 @@ from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
 import evaluation
-import feature_extractor2
+import feature_extractor4
 import loader
 import preprocessing
 from common.qrs_detect import *
@@ -21,16 +21,17 @@ from utils.common import set_seed
 
 def train(data_dir, model_file):
     (X, Y) = loader.load_all_data(data_dir)
-    X = preprocessing.normalize(X)
-    Y = preprocessing.format_labels(Y)
-    print('Input length', len(X))
-    print('Categories mapping', preprocessing.__MAPPING__)
 
     subX = X
     subY = Y
 
+    subX = preprocessing.normalize(subX)
+    subY = preprocessing.format_labels(subY)
+    print('Input length', len(subX))
+    print('Categories mapping', preprocessing.__MAPPING__)
+
     print("Features extraction started")
-    subX = async.apply_async(subX, feature_extractor2.features_for_row)
+    subX = async.apply_async(subX, feature_extractor4.features_for_row)
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
@@ -67,7 +68,7 @@ def load_model(model_file):
 def classify(record, clf, data_dir):
     x = loader.load_data_from_file(record, data_dir)
     x = normalize_ecg(x)
-    x = feature_extractor2.features_for_row(x)
+    x = feature_extractor4.features_for_row(x)
 
     # as we have one sample at a time to predict, we should resample it into 2d array to classify
     x = np.array(x).reshape(1, -1)
