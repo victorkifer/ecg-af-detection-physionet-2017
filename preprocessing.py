@@ -36,6 +36,10 @@ def numpy_set_length(a, length, value=0):
         return np.append(a, append)
 
 
+def transpose_ecg(ecg):
+    return np.array([-1 * x for x in ecg])
+
+
 def trimboth(row, portion):
     filter = portion * max(
         fabs(np.amin(row)),
