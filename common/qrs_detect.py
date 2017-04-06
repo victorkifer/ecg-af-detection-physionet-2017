@@ -10,7 +10,7 @@ from scipy.signal import lfilter
 def remove_dc_component(ecg):
     mean = np.mean(ecg)
     # cancel DC components
-    return np.array([x - mean for x in ecg])
+    return ecg - mean
 
 
 def normalize_ecg(ecg):
@@ -19,8 +19,7 @@ def normalize_ecg(ecg):
     :param ecg: input signal
     :return: normalized signal
     """
-    abs_max = max([fabs(x) for x in ecg])
-    return np.array([x / abs_max for x in ecg])
+    return ecg / max(fabs(np.amin(ecg)), fabs(np.amax(ecg)))
 
 
 def qrs_detect(ecg):
