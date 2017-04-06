@@ -26,11 +26,6 @@ def get_model(input_shape):
     return impl
 
 
-def preprocess_features(X):
-    # this is required for FCN and ResNet
-    return X.reshape((X.shape[0], 1, X.shape[1]))
-
-
 def train(data_dir, model_file):
     (X, Y) = loader.load_all_data(data_dir)
     X = preprocessing.normalize(X)
@@ -41,9 +36,7 @@ def train(data_dir, model_file):
     (X, Y) = preprocessing.shuffle_data(X, Y)
     print('Training shape', X.shape)
 
-    X = preprocess_features(X)
-
-    impl = get_model(X[1:])
+    impl = get_model(X.shape[1:])
     model = impl.model
 
     NB_SAMPLES = 50000
@@ -86,8 +79,6 @@ def classify(file, data_dir, model_file):
     x = loader.load_data_from_file(file, data_dir)
     x = feature_extractor.extract_heartbeats_for_row(x)
     impl = get_model(x.shape[1:])
-
-    x = preprocess_features(x)
 
     model = impl.model
     model.load_weights(model_file)
