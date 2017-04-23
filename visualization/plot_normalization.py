@@ -4,6 +4,8 @@ This script plots different stages of normalization of the signal
 
 import random
 
+import matplotlib
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 
 import loader

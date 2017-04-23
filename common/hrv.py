@@ -11,6 +11,8 @@ def time_domain(rri):
     """
     rmssd = 0
     sdnn = 0
+    nn20 = 0
+    pnn20 = 0
     nn50 = 0
     pnn50 = 0
     mrri = 0
@@ -27,6 +29,11 @@ def time_domain(rri):
             # Proportion of NN50 divided by total number of NNs
             pnn50 = (nn50 / len(diff_rri)) * 100
 
+            # Number of pairs of successive NNs that differe by more than 20ms
+            nn20 = sum(abs(diff_rri) > 20)
+            # Proportion of NN20 divided by total number of NNs
+            pnn20 = (nn20 / len(diff_rri)) * 100
+
         # Standard deviation of NN intervals
         sdnn = np.std(rri, ddof=1)  # make it calculates N-1
         # Mean of RR intervals
@@ -36,8 +43,8 @@ def time_domain(rri):
         # Mean heart rate, in ms
         mhr = 60 * 1000.0 / mrri
 
-    keys = ['rmssd', 'sdnn', 'nn50', 'pnn50', 'mrri', 'stdrri', 'mhr']
-    values = [rmssd, sdnn, nn50, pnn50, mrri, stdrri, mhr]
+    keys = ['rmssd', 'sdnn', 'nn20', 'pnn20', 'nn50', 'pnn50', 'mrri', 'stdrri', 'mhr']
+    values = [rmssd, sdnn, nn20, pnn20, nn50, pnn50, mrri, stdrri, mhr]
     values = np.round(values, 2)
     values = np.nan_to_num(values)
 

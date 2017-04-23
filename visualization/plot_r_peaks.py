@@ -7,6 +7,9 @@ See common/qrs_detect.py, common/qrs_detect2.py
 
 import random
 
+import matplotlib
+matplotlib.use("Qt5Agg")
+
 import matplotlib.pyplot as plt
 
 from common.qrs_detect import *

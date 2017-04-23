@@ -6,6 +6,7 @@ from math import fabs
 from random import shuffle
 
 from common import qrs_detect
+from utils import async
 from utils import matlab
 
 __MAPPING__ = {
@@ -123,6 +124,28 @@ def balance(x, y):
     for (key, value) in selected.items():
         x += value[:min_len]
         y += [key for i in range(min_len)]
+
+    x, y = shuffle_data(x, y)
+
+    return x, y
+
+
+def balance2(x, y):
+    uniq = np.unique(y)
+
+    selected = dict()
+
+    for val in uniq:
+        selected[val] = [x[i] for i in matlab.find(y, lambda v: v == val)]
+
+    min_len = 6 * min([len(x) for x in selected.values()])
+
+    x = []
+    y = []
+    for (key, value) in selected.items():
+        slen = min(len(value), min_len)
+        x += value[:slen]
+        y += [key for i in range(slen)]
 
     x, y = shuffle_data(x, y)
 

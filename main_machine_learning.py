@@ -10,7 +10,7 @@ from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
 import evaluation
-import feature_extractor4
+import feature_extractor3
 import loader
 import preprocessing
 from common.qrs_detect import *
@@ -21,6 +21,7 @@ from utils.common import set_seed
 
 def train(data_dir, model_file):
     (X, Y) = loader.load_all_data(data_dir)
+    X, Y = preprocessing.balance2(X, Y)
 
     subX = X
     subY = Y
@@ -31,7 +32,7 @@ def train(data_dir, model_file):
     print('Categories mapping', preprocessing.__MAPPING__)
 
     print("Features extraction started")
-    subX = async.apply_async(subX, feature_extractor4.features_for_row)
+    subX = async.apply_async(subX, feature_extractor3.features_for_row)
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
@@ -68,7 +69,7 @@ def load_model(model_file):
 def classify(record, clf, data_dir):
     x = loader.load_data_from_file(record, data_dir)
     x = normalize_ecg(x)
-    x = feature_extractor4.features_for_row(x)
+    x = feature_extractor3.features_for_row(x)
 
     # as we have one sample at a time to predict, we should resample it into 2d array to classify
     x = np.array(x).reshape(1, -1)
@@ -78,12 +79,15 @@ def classify(record, clf, data_dir):
 
 def classify_all(data_dir, model_file):
     model = joblib.load(model_file)
+    print("Model is loaded")
     with open(data_dir + '/RECORDS', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='|')
 
+        print("Starting classification")
         func = partial(classify, clf=model, data_dir=data_dir)
         names = [row[0] for row in reader]
         labels = async.apply_async(names, func)
+        print("Classification finished, saving results")
 
         with open("answers.txt", "a") as f:
             for (name, label) in zip(names, labels):
@@ -115,7 +119,7 @@ if __name__ == "__main__":
         if os.path.exists("answers.txt"):
             yesno = input("answers.txt already exists, clean it? [y/n]").lower()
             if yesno == "yes" or yesno == "y":
-                open('file.txt', 'w').close()
+                open('answers.txt', 'w').close()
                 classify_all(args.dir, model_file)
         else:
             classify_all(args.dir, model_file)

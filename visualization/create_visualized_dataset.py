@@ -3,8 +3,7 @@ from functools import partial
 from os import path
 
 import matplotlib
-
-matplotlib.use("macosx", warn=False, force=True)
+matplotlib.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullLocator

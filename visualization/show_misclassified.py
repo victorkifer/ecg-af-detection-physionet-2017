@@ -12,6 +12,9 @@ NOTE:
 import csv
 from collections import Counter
 
+import matplotlib
+matplotlib.use("Qt5Agg")
+
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
