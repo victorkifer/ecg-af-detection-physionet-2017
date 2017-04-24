@@ -22,6 +22,24 @@ def normalize_ecg(ecg):
     return ecg / max(fabs(np.amin(ecg)), fabs(np.amax(ecg)))
 
 
+def pqrst_detect(ecg):
+    """
+    Based on this article
+    http://cnx.org/contents/YR1BUs9_@1/QRS-Detection-Using-Pan-Tompki
+
+    :param ecg: ECG signal
+    :param fs: signal frequency
+    :return: list, positions of R peaks
+    """
+    ecg2 = low_pass_filtering(ecg)
+    ecg3 = high_pass_filtering(ecg2)
+    ecg4 = derivative_filter(ecg3)
+    ecg5 = squaring(ecg4)
+    ecg6 = moving_window_integration(ecg5)
+    left, right = left_right(ecg6)
+    return pqrst(ecg, left, right)
+
+
 def qrs_detect(ecg):
     """
     Based on this article
@@ -131,3 +149,67 @@ def qrs(ecg1, left, right):
 
     R_locs = [R_locs[i] for i in find(R_locs, lambda x: x != 0)]
     return R_locs
+
+
+def pqrst(ecg1, left, right):
+    P_locs = []
+    Q_locs = []
+    R_locs = []
+    S_locs = []
+    T_locs = []
+    for i in range(len(left)):
+        if left[i] >= right[i] or left[i] < 0 or right[i] > len(ecg1):
+            # print('Ignoring range', left[i], right[i])
+            continue
+
+        R_value, R_loc = np_max(ecg1[left[i]:right[i]])
+
+        if R_loc == 0 or R_loc == right[i] - left[i]:
+            # print('Ignoring range', left[i], right[i], 'R_loc is at the edge')
+            continue
+
+        R_loc = R_loc + left[i]
+        R_locs.append(R_loc)
+
+        Q_value, Q_loc = np_min(ecg1[left[i]:R_loc])
+        Q_loc = Q_loc + left[i]
+        S_value, S_loc = np_min(ecg1[R_loc:right[i]])
+        S_loc = S_loc + R_loc
+        Q_locs.append(Q_loc)
+        S_locs.append(S_loc)
+
+    for loc in Q_locs:
+        l = max(0, loc - int(0.2 * 300))
+        r = loc
+
+        if r <= l:
+            continue
+
+        P_value, P_loc = np_max(ecg1[l:r])
+
+        if P_loc == 0 or P_loc == r - l:
+            # on the edge
+            continue
+
+        P_loc += l
+
+        P_locs.append(P_loc)
+
+    for loc in S_locs:
+        l = loc
+        r = min(len(ecg1), loc + int(0.4 * 300))
+
+        if r <= l:
+            continue
+
+        T_value, T_loc = np_max(ecg1[l:r])
+
+        if T_loc == 0 or T_loc == r - l:
+            # on the edge
+            continue
+
+        T_loc += l
+
+        T_locs.append(T_loc)
+
+    return P_locs, Q_locs, R_locs, S_locs, T_locs

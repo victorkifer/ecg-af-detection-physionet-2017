@@ -5,7 +5,7 @@ from scipy.signal import medfilt, lfilter
 from scipy.signal import resample, filtfilt
 from scipy.stats import mode
 
-from utils import matlab
+from utils import matlab, common
 from utils.matlab import *
 
 
@@ -55,7 +55,7 @@ def qrs_detect2(ecg, thres=0.6, ref_period=0.25, fs=300):
     b1 = resample(b1, int(ceil(len(b1) * fs / 250)))
     bpfecg = np.transpose(filtfilt(b1, 1, ecg))
 
-    if (sum(abs(ecg - mode(ecg).mode[0]) > MIN_AMP) / NB_SAMP) > 0.5:
+    if (sum(abs(ecg - common.mode(ecg)) > MIN_AMP) / NB_SAMP) > 0.2:
         """
         if 20% of the samples have an absolute amplitude which is higher
         than MIN_AMP then we are good to go
