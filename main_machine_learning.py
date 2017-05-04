@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+import matplotlib
+
+matplotlib.use("Qt5Agg")
+
 import argparse
 import csv
 import os
@@ -7,12 +11,13 @@ from functools import partial
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 
 import evaluation
-import feature_extractor3
+import feature_extractor4
 import loader
 import preprocessing
+import tree_info
 from common.qrs_detect import *
 from utils import async
 from utils import logger
@@ -21,18 +26,24 @@ from utils.common import set_seed
 
 def train(data_dir, model_file):
     (X, Y) = loader.load_all_data(data_dir)
+    Y = preprocessing.format_labels(Y)
+    print('Categories mapping', preprocessing.__MAPPING__)
+    print('Input length', len(X))
+    print("Distribution of categories before balancing")
+    preprocessing.show_balancing(Y)
+
     X, Y = preprocessing.balance2(X, Y)
 
     subX = X
     subY = Y
 
     subX = preprocessing.normalize(subX)
-    subY = preprocessing.format_labels(subY)
     print('Input length', len(subX))
-    print('Categories mapping', preprocessing.__MAPPING__)
+    print("Distribution of categories after balancing")
+    preprocessing.show_balancing(subY)
 
     print("Features extraction started")
-    subX = async.apply_async(subX, feature_extractor3.features_for_row)
+    subX = async.apply_async(subX, feature_extractor4.features_for_row)
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
@@ -40,26 +51,22 @@ def train(data_dir, model_file):
     # subX = file['x']
     # subY = file['y']
 
-    print("Features extraction finished")
+    print("Features extraction finished", len(subX[0]))
     subY = subY
-
-    from collections import Counter
-
-    print("Distribution of categories before balancing")
-    counter = Counter(subY)
-    for key in counter.keys():
-        print(key, counter[key])
 
     Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 
     model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
+    scores = cross_val_score(model, subX, subY, cv=5)
+    print('Cross-Validation', scores, scores.mean())
+
+    model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     model.fit(Xt, Yt)
-
     joblib.dump(model, model_file)
-
     Ypredicted = model.predict(Xv)
 
     evaluation.print_validation_info(Yv, Ypredicted)
+    tree_info.plot_tree_info(model)
 
 
 def load_model(model_file):
@@ -68,8 +75,8 @@ def load_model(model_file):
 
 def classify(record, clf, data_dir):
     x = loader.load_data_from_file(record, data_dir)
-    x = normalize_ecg(x)
-    x = feature_extractor3.features_for_row(x)
+    x = preprocessing.normalize_ecg(x)
+    x = feature_extractor4.features_for_row(x)
 
     # as we have one sample at a time to predict, we should resample it into 2d array to classify
     x = np.array(x).reshape(1, -1)
@@ -117,7 +124,8 @@ if __name__ == "__main__":
             f.write(args.record + "," + label + "\n")
     else:
         if os.path.exists("answers.txt"):
-            yesno = input("answers.txt already exists, clean it? [y/n]").lower()
+            print("answers.txt already exists, clean it? [y/n]")
+            yesno = input().lower().strip()
             if yesno == "yes" or yesno == "y":
                 open('answers.txt', 'w').close()
                 classify_all(args.dir, model_file)

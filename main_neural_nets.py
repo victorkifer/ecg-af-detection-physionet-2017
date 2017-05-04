@@ -120,4 +120,11 @@ if __name__ == "__main__":
         with open("answers.txt", "a") as f:
             f.write(args.record + "," + label + "\n")
     else:
-        classify_all(args.dir, model_file)
+        if os.path.exists("answers.txt"):
+            print("answers.txt already exists, clean it? [y/n]")
+            yesno = input().lower().strip()
+            if yesno == "yes" or yesno == "y":
+                open('answers.txt', 'w').close()
+                classify_all(args.dir, model_file)
+        else:
+            classify_all(args.dir, model_file)

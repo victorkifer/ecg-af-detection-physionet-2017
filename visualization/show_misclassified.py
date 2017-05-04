@@ -33,6 +33,9 @@ with open('../answers.txt') as predicted, \
     ytrue = []
 
     acc = dict()
+    info = dict()
+
+    misclassified = []
 
     for (p, c) in zip(preader, creader):
         (record, pred_label) = p
@@ -41,7 +44,14 @@ with open('../answers.txt') as predicted, \
         ytrue.append(true_label)
 
         if p != c:
-            print(record, 'was classified as', pred_label, 'but should be', true_label)
+            info[record] = "Pred=" + pred_label + " True=" + true_label
+            misclassified.append((true_label, pred_label, record))
+        else:
+            info[record] = "Correct=" + true_label
+
+    misclassified = sorted(misclassified, key=lambda t: t[0] + t[1])
+    for item in misclassified:
+        print(item[2], 'is of class', item[0], 'but was classified as', item[1])
 
     print(classification_report(ytrue, ypred))
 
@@ -57,11 +67,18 @@ with open('../answers.txt') as predicted, \
 
     while (True):
         name = input("Enter an entry name to plot: ")
-        if len(name.strip()) == 0:
+        name = name.strip()
+        if len(name) == 0:
+            print("Finishing")
             break
+
+        if not loader.check_has_example(name):
+            print("File Not Found")
+            continue
 
         row = loader.load_data_from_file(name)
         r = qrs_detect(normalize_ecg(remove_dc_component(row)))
         plt.plot(range(len(row)), row, 'g-',
                  r, [row[x] for x in r], 'r^')
+        plt.ylabel(info[name])
         plt.show()

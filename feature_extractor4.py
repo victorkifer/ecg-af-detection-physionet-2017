@@ -1,179 +1,131 @@
-from pywt import wavedec
-from scipy.stats import stats
+import numpy as np
+from biosppy.signals import ecg
+from scipy import signal
+from scipy.stats import skew, kurtosis
 
 import loader
-
-import numpy as np
-
-import preprocessing
-from common import hrv
-from common.qrs_detect import *
-from common.qrs_detect2 import qrs_detect2
-from preprocessing import trimboth
-from utils import common
-from utils import matlab
-
-NB_RR = 80
+from fft import compute_fft
+from melbourne_eeg import calcActivity, calcMobility, calcComplexity
+from utils import common, matlab
 
 
-def extract_pqrst(row):
-    PR = 0.25
-    QRS = 0.1
-    QT = 0.44
-    QR = QRS / 2
-    RS = QRS / 2
-    ST = QT - QRS
-    PQ = PR - QR
-
-    PR = int(PR * loader.FREQUENCY)
-    QRS = int(QRS * loader.FREQUENCY)
-    QT = int(QT * loader.FREQUENCY)
-    QR = int(QR * loader.FREQUENCY)
-    RS = int(RS * loader.FREQUENCY)
-    ST = int(ST * loader.FREQUENCY)
-    PQ = int(PQ * loader.FREQUENCY)
-
-    r = qrs_detect(row)
-    beats = []
-    for R in r:
-        start = R - PR
-        if start < 0:
-            continue
-        end = R + RS + ST
-        if end > len(row):
-            continue
-
-        pqrst = (R - PR, R - QR, R, R + RS, R + RS + ST)
-        beats.append(pqrst)
-    return beats
+def group_consecutives(vals, step=1):
+    """Return list of consecutive lists of numbers from vals (number list)."""
+    run = []
+    result = [run]
+    expect = None
+    for v in vals:
+        if (v == expect) or (expect is None):
+            run.append(v)
+        else:
+            run = [v]
+            result.append(run)
+        expect = v + step
+    return result
 
 
-def wavelet_coefficients(row):
-    a, d1, d2 = wavedec(row, 'db4', level=2)
+def filter_peaks(ts, fts, rpeaks, tts, thb, hrts, hr):
+    rri = np.diff(rpeaks)
+    rr_mean = np.mean(rri)
 
-    d1n = trimboth(d1, 0.1)
-    d2n = trimboth(d2, 0.1)
+    misclassified = [x+1 for x in matlab.find(rri, lambda x: x < 0.5 * rr_mean)]
+    normalized = group_consecutives(misclassified)
+    misclassified = []
+    for item in normalized:
+        if type(item) is list:
+            misclassified += item[::2]
+        else:
+            misclassified.append(item)
+    print(misclassified)
 
-    m1 = np.mean(d1)
-    s1 = np.std(d1)
-    m1n = np.mean(d1n)
-    s1n = np.std(d1n)
+    rpeaks = np.delete(rpeaks, misclassified)
+    thb = np.delete(thb, misclassified)
+    hr = np.delete(hr, misclassified)
 
-    m2 = np.mean(d2)
-    s2 = np.std(d2)
-    m2n = np.mean(d2n)
-    s2n = np.std(d2n)
-
-    return [
-        m1n,
-        s1n,
-        abs(m1n) - abs(m1),
-        abs(s1n) - abs(s1),
-        m2n,
-        s2n,
-        abs(m2n) - abs(m2),
-        abs(s2n) - abs(s2)
-    ]
+    return ts, fts, rpeaks, tts, thb, hrts, hr
 
 
-def extract_hrv(rri):
-    features = []
-
-    hrv_data = hrv.time_domain(rri)
-    hrv_data.update(hrv.frequency_domain(rri))
-    keys = list(hrv_data.keys())
-    keys.sort()
-    for key in keys:
-        features.append(hrv_data[key])
-
-    return features
 
 
-def extract_features_for_pqrst(row, pqrsts):
-    features = []
-
-    p = [x[0] for x in pqrsts]
-    q = [x[1] for x in pqrsts]
-    r = [x[2] for x in pqrsts]
-    s = [x[3] for x in pqrsts]
-    t = [x[4] for x in pqrsts]
-
-    pqrsts = pqrsts[:min(NB_RR, len(pqrsts))]
-    row = low_pass_filtering(row)
-    row = high_pass_filtering(row)
-    for i in range(len(pqrsts)):
-        pq = row[p[i]:q[i]]
-        st = row[s[i]:t[i]]
-        pt = row[p[i]:t[i]]
-        pmax = np.amax(pq)
-        tmax = np.amax(st)
-
-        p_mean = np.mean(pq)
-        t_mean = np.mean(st)
-
-        features += [
-            # features for PQ interval
-            pmax,
-            pmax / row[r[i]],
-            p_mean,
-            np.std(pq),
-            common.mode(pq),
-
-            # feature for ST interval
-            tmax,
-            tmax / row[r[i]],
-            t_mean,
-            np.std(st),
-            common.mode(st),
-
-            p_mean / t_mean,
-
-            # features for whole PQRST interval
-            stats.skew(pt),
-            stats.kurtosis(pt)
-        ]
-
-    for i in range(NB_RR - len(pqrsts)):
-        features += [0 for x in range(13)]
-
-    return features
+def frequency_powers(x, n_power_features=30):
+    f, prd = signal.welch(x, loader.FREQUENCY)
+    return prd[:n_power_features]
 
 
-def features_for_row(row):
-    features = []
+def heart_rate_features(hr):
+    zhb = np.zeros(4)
+    if len(hr) > 0:
+        zhb[0] = np.amax(hr)
+        zhb[1] = np.amin(hr)
+        zhb[2] = np.mean(hr)
+        zhb[3] = np.std(hr)
+    return zhb
 
-    pqrsts = extract_pqrst(row)
-    features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
 
-    r = [x[2] for x in pqrsts]
-    minus_sign = sum([1 for i in r if row[i] < 0])
-    if minus_sign > 0.5 * len(r):
-        # if more than half of detected R peaks have negative value, we transpose ecg
-        row = preprocessing.transpose_ecg(row)
+def heart_beats_features(thb):
+    means = np.array([col.mean() for col in thb.T])
+    stds = np.array([col.std() for col in thb.T])
 
-    features += wavelet_coefficients(row)
+    return np.concatenate([means, stds])
 
-    if len(r) > 0:
-        r_val = [row[i] for i in r]
-        features.append(np.mean(r_val))
-        features.append(np.std(r_val))
-        rri = np.diff(r)
-    else:
-        features.append(0)
-        features.append(0)
-        rri = []
 
-    if len(rri) > 0:
-        mean = np.mean(rri)
-        nrri = matlab.select(rri, lambda x: 0.5 * mean < x < 1.5 * mean)
-        features.append(len(nrri) / len(rri))
-    else:
-        features.append(0)
+def heart_beats_features2(thb):
+    means = np.array([col.mean() for col in thb.T])
+    stds = np.array([col.std() for col in thb.T])
 
-    features += extract_hrv(rri)
+    PQ = means[:int(0.15 * loader.FREQUENCY)]
+    ST = means[int(0.25 * loader.FREQUENCY):]
+    r_pos = int(0.2 * loader.FREQUENCY)
 
-    features += extract_features_for_pqrst(row, pqrsts)
+    a = np.zeros(15)
+    p_pos = np.argmax(PQ)
+    t_pos = np.argmax(ST)
+    a[0] = r_pos - p_pos
+    a[1] = PQ[p_pos]
+    a[2] = PQ[p_pos] / means[r_pos]
+    a[3] = t_pos
+    a[4] = ST[t_pos]
+    a[5] = ST[t_pos] / means[r_pos]
+    a[6] = PQ[p_pos] / ST[t_pos]
+    a[7] = skew(PQ)
+    a[8] = kurtosis(PQ)
+    a[9] = skew(ST)
+    a[10] = kurtosis(ST)
+    a[11] = calcActivity(means)
+    a[12] = calcMobility(means)
+    a[13] = calcComplexity(means)
+    a[14] = np.mean(stds)
 
-    features = np.nan_to_num(features)
+    return a
 
-    return features
+
+def heart_beats_features3(thb):
+    means = np.array([col.mean() for col in thb.T])
+    medians = np.array([common.mode(col) for col in thb.T])
+
+    diff = np.subtract(means, medians)
+    diff = np.power(diff, 2)
+
+    return np.array([diff.mean()])
+
+
+def features_for_row(x):
+    [ts, fts, rpeaks, tts, thb, hrts, hr] = ecg.ecg(signal=x, sampling_rate=loader.FREQUENCY, show=False)
+    """
+    Returns:	
+
+    ts (array) – Signal time axis reference (seconds).
+    filtered (array) – Filtered ECG signal.
+    rpeaks (array) – R-peak location indices.
+    templates_ts (array) – Templates time axis reference (seconds).
+    templates (array) – Extracted heartbeat templates.
+    heart_rate_ts (array) – Heart rate time axis reference (seconds).
+    heart_rate (array) – Instantaneous heart rate (bpm).
+    """
+
+    return np.concatenate([
+        heart_rate_features(hr),
+        frequency_powers(x),
+        heart_beats_features2(thb),
+        heart_beats_features3(thb)
+    ])

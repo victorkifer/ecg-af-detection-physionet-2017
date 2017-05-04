@@ -1,3 +1,5 @@
+from collections import Counter
+
 from pywt import wavedec
 import numpy as np
 import multiprocessing as mp
@@ -6,6 +8,7 @@ from math import fabs
 from random import shuffle
 
 from common import qrs_detect
+from common.qrs_detect import pqrst_detect
 from utils import async
 from utils import matlab
 
@@ -37,6 +40,21 @@ def numpy_set_length(a, length, value=0):
         return np.append(a, append)
 
 
+def transpose_if_needed(row):
+    """
+    :param row: 
+    :return: (row data, whether the data was transposed)
+    """
+    p, q, r, s, t = pqrst_detect(row)
+
+    qs = [abs(row[x] - row[y]) for x, y in zip(q, s)]
+    m = [max(abs(row[p1]), abs(row[p2]), abs(row[p3])) for p1, p2, p3 in zip(q, r, s)]
+    rotate_points = sum([1 if x / y > 0.7 else 0 for x, y in zip(qs, m)])
+    if rotate_points > int(0.6 * len(qs)) + 1:
+        return transpose_ecg(row), True
+    return row, False
+
+
 def transpose_ecg(ecg):
     return np.array([-1 * x for x in ecg])
 
@@ -59,7 +77,9 @@ def normalize(X):
 
 def normalize_ecg(ecg):
     ecg = qrs_detect.remove_dc_component(ecg)
-    return qrs_detect.normalize_ecg(ecg)
+    ecg = qrs_detect.normalize_ecg(ecg)
+    # ecg = transpose_if_needed(ecg)
+    return ecg
 
 
 def format_labels(labels):
@@ -89,6 +109,12 @@ def convolution(signal, window_size, step, fadein=0, fadeout=0):
         start += step
 
     return output
+
+
+def show_balancing(y):
+    counter = Counter(y)
+    for key in sorted(list(counter.keys())):
+        print(key, counter[key])
 
 
 def shuffle_data(data, labels):

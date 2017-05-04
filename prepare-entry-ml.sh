@@ -21,24 +21,17 @@ function cleanup {
 }
 trap cleanup EXIT
 
-echo "==== running setup script ===="
-
-#./setup.sh
-
 echo "==== running entry script on validation set ===="
 
 rm -R outputs/entry >/dev/null 2>&1 || true
 rm -r outputs/entry.zip >/dev/null 2>&1 || true
-#rm -f answers.txt
 
+#rm -f answers.txt
 #python3 main_machine_learning.py
 
 mkdir -p outputs/entry
 cp setup_ml.sh outputs/entry/setup.sh
 cp next_ml.sh outputs/entry/next.sh
-
-#cp setup_nn.sh outputs/entry/setup.sh
-#cp next_nn.sh outputs/entry/next.sh
 
 cp AUTHORS.txt outputs/entry/
 cp LICENSE.txt outputs/entry/
@@ -54,9 +47,9 @@ cp *.py outputs/entry
 cp answers.txt outputs/entry
 
 cp model.pkl outputs/entry || true
-cp weights.h5 outputs/entry || true
 
-cp -R packages outputs/entry/packages
+mkdir outputs/entry/packages
+cp -R packages_common/* outputs/entry/packages
 
 read -p "Is this a dry-run entry? " -n 1 -r
 echo    # (optional) move to a new line
