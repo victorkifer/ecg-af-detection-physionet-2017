@@ -43,6 +43,12 @@ cp -R utils/*.py outputs/entry/utils/
 mkdir outputs/entry/common
 cp -R common/*.py outputs/entry/common/
 
+mkdir outputs/entry/biosppy
+cp -R biosppy/*.py outputs/entry/biosppy/
+
+mkdir outputs/entry/biosppy/signals
+cp -R biosppy/signals/*.py outputs/entry/biosppy/signals/
+
 cp *.py outputs/entry
 cp answers.txt outputs/entry
 

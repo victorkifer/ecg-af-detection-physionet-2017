@@ -14,6 +14,5 @@ cd packages
 # Common packages
 pip3 install --no-deps --user PyWavelets-0.5.2.tar.gz
 pip3 install --no-deps --user scikit-learn-0.18.1.tar.gz
-pip3 install --no-deps --user biosppy-0.3.0-py2.py3-none-any.whl
 
 cd ..

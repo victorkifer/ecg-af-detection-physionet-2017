@@ -1,8 +1,13 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
-
 def plot_tree_info(rf):
+    try:
+        import matplotlib
+    except ImportError:
+        print("Matplotlib is not installed")
+        return
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
     importances = rf.feature_importances_
     std = np.std([tree.feature_importances_ for tree in rf.estimators_],
                  axis=0)

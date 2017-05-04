@@ -5,6 +5,10 @@ def calcNormalizedFFT(epoch, lvl, nt, fs):
     """
     Calculates the FFT of the epoch signal.
     Removes the DC component and normalizes the area to 1
+    :param epoch - signal
+    :param lvl - frequency levels
+    :param nt - length of the signal
+    :param fs - sampling frequency
     """
     lseg = np.round(nt / fs * lvl).astype('int')
     D = np.absolute(np.fft.fft(epoch, n=lseg[-1], axis=0))

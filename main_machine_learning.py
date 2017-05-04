@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
-import matplotlib
-
-matplotlib.use("Qt5Agg")
+try:
+    import matplotlib
+    matplotlib.use("Qt5Agg")
+except ImportError:
+    print("Matplotlib is not installed")
 
 import argparse
 import csv
