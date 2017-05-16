@@ -60,7 +60,7 @@ def train(data_dir, model_file):
     learning_optimizer = helper.model_learning_optimizer()
     learning_stopper = helper.learning_stopper()
     model.fit(Xt, Yt,
-              nb_epoch=50,
+              epochs=50,
               validation_data=(Xv, Yv),
               callbacks=[
                   model_saver,

@@ -4,6 +4,9 @@ This script plots the wavelet of the signal with details
 
 import random
 
+import matplotlib
+matplotlib.use("Qt5Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 from pywt import wavedec

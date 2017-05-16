@@ -58,7 +58,7 @@ class RCN(__BaseModel__):
         outputs = Dense(4)(outputs)
         outputs = Activation('softmax')(outputs)
 
-        m = Model(inputs=inputs, output=outputs)
+        m = Model(inputs=inputs, outputs=outputs)
         m.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
@@ -94,7 +94,7 @@ class FCN(__BaseModel__):
         outputs = Dense(4)(outputs)
         outputs = Activation('softmax')(outputs)
 
-        m = Model(inputs=inputs, output=outputs)
+        m = Model(inputs=inputs, outputs=outputs)
         m.compile(optimizer='adagrad',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
