@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from sklearn.tree import DecisionTreeClassifier
 
 import feature_extractor5
 
@@ -51,20 +52,20 @@ def train(data_dir, model_file):
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
-    # file = np.load('outputs/processed.npz')
-    # subX = file['x']
-    # subY = file['y']
+    file = np.load('outputs/processed.npz')
+    subX = file['x']
+    subY = file['y']
 
     print("Features extraction finished", len(subX[0]))
     subY = subY
 
     Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 
-    model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
-    scores = cross_val_score(model, subX, subY, cv=5)
+    model = RandomForestClassifier(n_estimators=100, n_jobs=async.get_number_of_jobs())
+    scores = cross_val_score(model, subX, subY, cv=10)
     print('Cross-Validation', scores, scores.mean())
 
-    model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
+    model = RandomForestClassifier(n_estimators=100, n_jobs=async.get_number_of_jobs())
     model.fit(Xt, Yt)
     joblib.dump(model, model_file)
     Ypredicted = model.predict(Xv)

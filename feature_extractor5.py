@@ -121,7 +121,9 @@ def r_features(s, r_peaks):
     total = len(r_vals) if len(r_vals) > 0 else 1
 
     data = hrv.time_domain(times)
-    hr = [v for k, v in data.items()]
+    keys = sorted(list(data.keys()))
+
+    hr = [data[key] for key in keys]
 
     return np.concatenate(
         (

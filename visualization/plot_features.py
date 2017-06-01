@@ -35,7 +35,7 @@ color_dict = {
     3: "black"
 }
 
-for i, y in enumerate(subX[:1000]):
+for i, y in enumerate(subX[:500]):
     lbl = subY[i]
 
     if lbl in []:
@@ -48,4 +48,5 @@ for i, y in enumerate(subX[:1000]):
     )
 
 plt.xticks(xf)
+plt.grid()
 plt.show()

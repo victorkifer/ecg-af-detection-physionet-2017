@@ -59,11 +59,11 @@ mkdir outputs/entry/packages
 cp -R packages_common/* outputs/entry/packages
 cp -R packages_nn/* outputs/entry/packages
 
-read -p "Is this a dry-run entry? " -n 1 -r
+read -p "Is this a dry-run entry(not for score)? " -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-    cp DRYRUN outputs/entry/DRY_RUN
+    touch outputs/entry/DRYRUN
 fi
 
 cd outputs/entry
