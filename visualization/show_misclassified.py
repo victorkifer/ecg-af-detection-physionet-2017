@@ -13,6 +13,9 @@ import csv
 from collections import Counter
 
 import matplotlib
+
+from biosppy.signals import ecg
+
 matplotlib.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
@@ -77,8 +80,6 @@ with open('../answers.txt') as predicted, \
             continue
 
         row = loader.load_data_from_file(name)
-        r = qrs_detect(normalize_ecg(remove_dc_component(row)))
-        plt.plot(range(len(row)), row, 'g-',
-                 r, [row[x] for x in r], 'r^')
-        plt.ylabel(info[name])
-        plt.show()
+
+        print(info[name])
+        [ts, fts, rpeaks, tts, thb, hrts, hr] = ecg.ecg(signal=row, sampling_rate=loader.FREQUENCY, show=True)

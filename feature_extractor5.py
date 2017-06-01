@@ -4,6 +4,7 @@ from scipy import signal
 from scipy.stats import skew, kurtosis
 
 import loader
+from common import hrv
 from fft import compute_fft
 from melbourne_eeg import calcActivity, calcMobility, calcComplexity
 from utils import common, matlab
@@ -107,6 +108,32 @@ def heart_beats_features3(thb):
     return np.array([diff.mean()])
 
 
+def r_features(s, r_peaks):
+    r_vals = [s[i] for i in r_peaks]
+
+    times = np.diff(r_peaks)
+    avg = np.mean(times)
+    filtered = sum([1 if i < 0.5 * avg else 0 for i in times])
+
+    total = len(r_vals) if len(r_vals) > 0 else 1
+
+    data = hrv.time_domain(times)
+    hr = [v for k,v in data.items()]
+
+    return np.concatenate(
+        (
+            np.array([
+                len(r_peaks) / len(s),
+                np.mean(r_vals),
+                np.std(r_vals),
+                filtered,
+                filtered / total
+            ]),
+            np.array(hr)
+        )
+    )
+
+
 def features_for_row(x):
     [ts, fts, rpeaks, tts, thb, hrts, hr] = ecg.ecg(signal=x, sampling_rate=loader.FREQUENCY, show=False)
     """
@@ -125,5 +152,6 @@ def features_for_row(x):
         heart_rate_features(hr),
         frequency_powers(x),
         heart_beats_features2(thb),
-        heart_beats_features3(thb)
+        heart_beats_features3(thb),
+        r_features(fts, rpeaks)
     ])

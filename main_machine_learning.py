@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+from sklearn.multiclass import OneVsRestClassifier
+
+import feature_extractor2
+import feature_extractor3
+import feature_extractor5
 
 try:
     import matplotlib
@@ -45,13 +50,13 @@ def train(data_dir, model_file):
     preprocessing.show_balancing(subY)
 
     print("Features extraction started")
-    subX = async.apply_async(subX, feature_extractor4.features_for_row)
+    subX = async.apply_async(subX, feature_extractor5.features_for_row)
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
-    # file = np.load('outputs/processed.npz')
-    # subX = file['x']
-    # subY = file['y']
+    file = np.load('outputs/processed.npz')
+    subX = file['x']
+    subY = file['y']
 
     print("Features extraction finished", len(subX[0]))
     subY = subY
@@ -61,6 +66,10 @@ def train(data_dir, model_file):
     model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     scores = cross_val_score(model, subX, subY, cv=5)
     print('Cross-Validation', scores, scores.mean())
+
+    # model = OneVsRestClassifier(
+    #     RandomForestClassifier(n_estimators=60, n_jobs=async .get_number_of_jobs())
+    # )
 
     model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     model.fit(Xt, Yt)
@@ -78,7 +87,7 @@ def load_model(model_file):
 def classify(record, clf, data_dir):
     x = loader.load_data_from_file(record, data_dir)
     x = preprocessing.normalize_ecg(x)
-    x = feature_extractor4.features_for_row(x)
+    x = feature_extractor5.features_for_row(x)
 
     # as we have one sample at a time to predict, we should resample it into 2d array to classify
     x = np.array(x).reshape(1, -1)
