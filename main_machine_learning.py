@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-from sklearn.multiclass import OneVsRestClassifier
 
-import feature_extractor2
-import feature_extractor3
 import feature_extractor5
 
 try:
     import matplotlib
+
     matplotlib.use("Qt5Agg")
 except ImportError:
     print("Matplotlib is not installed")
@@ -21,7 +19,6 @@ from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split, cross_val_score
 
 import evaluation
-import feature_extractor4
 import loader
 import preprocessing
 import tree_info
@@ -54,9 +51,9 @@ def train(data_dir, model_file):
 
     np.savez('outputs/processed.npz', x=subX, y=subY)
 
-    file = np.load('outputs/processed.npz')
-    subX = file['x']
-    subY = file['y']
+    # file = np.load('outputs/processed.npz')
+    # subX = file['x']
+    # subY = file['y']
 
     print("Features extraction finished", len(subX[0]))
     subY = subY
@@ -66,10 +63,6 @@ def train(data_dir, model_file):
     model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     scores = cross_val_score(model, subX, subY, cv=5)
     print('Cross-Validation', scores, scores.mean())
-
-    # model = OneVsRestClassifier(
-    #     RandomForestClassifier(n_estimators=60, n_jobs=async .get_number_of_jobs())
-    # )
 
     model = RandomForestClassifier(n_estimators=60, n_jobs=async.get_number_of_jobs())
     model.fit(Xt, Yt)
@@ -133,6 +126,7 @@ if __name__ == "__main__":
 
         with open("answers.txt", "a") as f:
             f.write(args.record + "," + label + "\n")
+        print(args.record + "," + label)
     else:
         if os.path.exists("answers.txt"):
             print("answers.txt already exists, clean it? [y/n]")

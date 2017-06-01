@@ -1,2 +1,3 @@
-Miguel Lozano
-Viktor Kifer
+Miguel Lozano <miguel.lozano@uv.es>
+Viktor Kifer <kifervictor@gmail.com>
+Francisco  Martinez-Gil

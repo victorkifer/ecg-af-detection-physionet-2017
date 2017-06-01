@@ -1,11 +1,10 @@
 import numpy as np
-from biosppy.signals import ecg
 from scipy import signal
 from scipy.stats import skew, kurtosis
 
 import loader
+from biosppy.signals import ecg
 from common import hrv
-from fft import compute_fft
 from melbourne_eeg import calcActivity, calcMobility, calcComplexity
 from utils import common, matlab
 
@@ -29,7 +28,7 @@ def filter_peaks(ts, fts, rpeaks, tts, thb, hrts, hr):
     rri = np.diff(rpeaks)
     rr_mean = np.mean(rri)
 
-    misclassified = [x+1 for x in matlab.find(rri, lambda x: x < 0.5 * rr_mean)]
+    misclassified = [x + 1 for x in matlab.find(rri, lambda x: x < 0.5 * rr_mean)]
     normalized = group_consecutives(misclassified)
     misclassified = []
     for item in normalized:
@@ -72,9 +71,13 @@ def heart_beats_features2(thb):
     means = np.array([col.mean() for col in thb.T])
     stds = np.array([col.std() for col in thb.T])
 
+    r_pos = int(0.2 * loader.FREQUENCY)
+
+    if means[r_pos] < 0:
+        means *= -1
+
     PQ = means[:int(0.15 * loader.FREQUENCY)]
     ST = means[int(0.25 * loader.FREQUENCY):]
-    r_pos = int(0.2 * loader.FREQUENCY)
 
     a = np.zeros(15)
     p_pos = np.argmax(PQ)
@@ -118,7 +121,7 @@ def r_features(s, r_peaks):
     total = len(r_vals) if len(r_vals) > 0 else 1
 
     data = hrv.time_domain(times)
-    hr = [v for k,v in data.items()]
+    hr = [v for k, v in data.items()]
 
     return np.concatenate(
         (

@@ -23,6 +23,7 @@ class Tee(object):
             self.terminal.write(self.__message__)
             if self.file_log_enabled:
                 self.logfile.write(self.__message__)
+                self.logfile.flush()
             self.__message__ = ""
 
     def flush(self):

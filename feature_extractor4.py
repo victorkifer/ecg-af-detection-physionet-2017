@@ -1,10 +1,9 @@
 import numpy as np
-from biosppy.signals import ecg
 from scipy import signal
 from scipy.stats import skew, kurtosis
 
 import loader
-from fft import compute_fft
+from biosppy.signals import ecg
 from melbourne_eeg import calcActivity, calcMobility, calcComplexity
 from utils import common, matlab
 
@@ -28,7 +27,7 @@ def filter_peaks(ts, fts, rpeaks, tts, thb, hrts, hr):
     rri = np.diff(rpeaks)
     rr_mean = np.mean(rri)
 
-    misclassified = [x+1 for x in matlab.find(rri, lambda x: x < 0.5 * rr_mean)]
+    misclassified = [x + 1 for x in matlab.find(rri, lambda x: x < 0.5 * rr_mean)]
     normalized = group_consecutives(misclassified)
     misclassified = []
     for item in normalized:
