@@ -1,9 +1,7 @@
 import multiprocessing as mp
 
-import numpy as np
-from pywt import wavedec
-
-from common.qrs_detect import *
+import biosppy
+from features.qrs_detect import *
 
 FREQUENCY = 300
 MIN_HEARTBEAT_TIME = int(0.4 * FREQUENCY)
@@ -25,24 +23,29 @@ def extract_heartbeats(X, Y):
     for i in range(len(x_new)):
         out = x_new[i]
         y = Y[i]
-        for o in out:
-            x_out.append(o)
-            y_out.append(y)
+        x_out.append(out)
+        y_out.append(y)
+        # for o in out:
+        #     x_out.append(o)
+        #     y_out.append(y)
     return np.array(x_out), y_out
 
 
 def extract_heartbeats_for_row(ecg):
-    r = get_r_peaks_positions(ecg)
-    beats = []
-    for peak in r:
-        start = peak - BEFORE_R
-        end = peak + AFTER_R
-        if start < 0:
-            continue
-        if end > len(ecg):
-            continue
-        beats.append(ecg[start:end])
-    return beats
+    thb = biosppy.ecg.ecg(ecg, sampling_rate=300., show=False)['templates']
+    means = np.array([np.median(col) for col in thb.T])
+    return means
+    # r = get_r_peaks_positions(ecg)
+    # beats = []
+    # for peak in r:
+    #     start = peak - BEFORE_R
+    #     end = peak + AFTER_R
+    #     if start < 0:
+    #         continue
+    #     if end > len(ecg):
+    #         continue
+    #     beats.append(ecg[start:end])
+    # return beats
 
 
 def get_r_peaks_positions(row):

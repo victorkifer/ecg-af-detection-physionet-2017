@@ -2,9 +2,9 @@ import numpy as np
 from scipy import signal
 from scipy.stats import skew, kurtosis
 
-import loader
 from biosppy.signals import ecg
-from melbourne_eeg import calcActivity, calcMobility, calcComplexity
+from features.melbourne_eeg import calcActivity, calcMobility, calcComplexity
+from loading import loader
 from utils import common, matlab
 
 

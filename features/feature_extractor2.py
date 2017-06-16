@@ -1,14 +1,8 @@
 from pywt import wavedec
 from scipy.stats import stats
 
-import loader
-
-import numpy as np
-
-import preprocessing
-from common import hrv
-from common.qrs_detect import *
-from common.qrs_detect2 import qrs_detect2
+from features.qrs_detect import *
+from loading import loader
 from preprocessing import trimboth
 from utils import common
 from utils import matlab
@@ -49,7 +43,7 @@ def extract_pqrst(row):
 
 
 def wavelet_coefficients(row):
-    a, d1, d2 = wavedec(row, 'db4', level=2)
+    a, d1, d2 = wavedec(row, 'db1', level=2)
 
     d1n = trimboth(d1, 0.1)
     d2n = trimboth(d2, 0.1)
@@ -76,27 +70,68 @@ def wavelet_coefficients(row):
     ]
 
 
-def extract_hrv(rri):
+def rr_diff(rrs):
+    rr_d = []
+    rr_sqd = []
+
+    for i in range(1, len(rrs)):
+        rr_d.append(abs(rrs[i - 1] - rrs[i]))
+        rr_sqd.append(pow(rrs[i - 1] - rrs[i], 2))
+
+    return rr_d, rr_sqd
+
+
+def features_for_row(row):
     features = []
 
-    hrv_data = hrv.time_domain(rri)
-    hrv_data.update(hrv.frequency_domain(rri))
-    keys = list(hrv_data.keys())
-    keys.sort()
-    for key in keys:
-        features.append(hrv_data[key])
+    features += wavelet_coefficients(row)
 
-    return features
+    pqrsts = extract_pqrst(row)
 
+    features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
 
-def extract_features_for_pqrst(row, pqrsts):
-    features = []
+    if len(pqrsts) == 0:
+        return features + [0 for x in range(10 + NB_RR * 13)]
 
     p = [x[0] for x in pqrsts]
     q = [x[1] for x in pqrsts]
     r = [x[2] for x in pqrsts]
     s = [x[3] for x in pqrsts]
     t = [x[4] for x in pqrsts]
+
+    r_val = [row[i] for i in r]
+    features.append(np.mean(r_val))
+    features.append(np.std(r_val))
+
+    rrs = np.diff(r)
+
+    if len(rrs) > 0:
+        mean = np.mean(rrs)
+        original_len = len(rrs)
+        rrs = matlab.select(rrs, lambda x: 0.5 * mean < x < 1.5 * mean)
+        features.append(len(rrs) / original_len)
+    else:
+        features.append(0)
+
+    if len(rrs) > 0:
+        (rr_d, rr_sqd) = rr_diff(rrs)
+        sdsd = 0
+        rmssd = 0
+        if len(rr_d) > 0:
+            sdsd = np.std(rr_d)
+            rmssd = np.sqrt(np.mean(rr_sqd))
+
+        features += [
+            np.amin(rrs),
+            np.amax(rrs),
+            np.mean(rrs),
+            np.std(rrs),
+            sdsd,
+            rmssd,
+            sum([1 for x in r if x < 0])
+        ]
+    else:
+        features += [0 for x in range(7)]
 
     pqrsts = pqrsts[:min(NB_RR, len(pqrsts))]
     row = low_pass_filtering(row)
@@ -106,9 +141,7 @@ def extract_features_for_pqrst(row, pqrsts):
         st = row[s[i]:t[i]]
         pt = row[p[i]:t[i]]
         pmax = np.amax(pq)
-        pmin = np.amax(pq)
         tmax = np.amax(st)
-        tmin = np.amax(st)
 
         p_mean = np.mean(pq)
         t_mean = np.mean(st)
@@ -117,18 +150,14 @@ def extract_features_for_pqrst(row, pqrsts):
             # features for PQ interval
             pmax,
             pmax / row[r[i]],
-            pmin / pmax,
             p_mean,
-            p_mean / pmax,
             np.std(pq),
             common.mode(pq),
 
             # feature for ST interval
             tmax,
             tmax / row[r[i]],
-            tmin / tmax,
             t_mean,
-            t_mean / tmax,
             np.std(st),
             common.mode(st),
 
@@ -140,46 +169,6 @@ def extract_features_for_pqrst(row, pqrsts):
         ]
 
     for i in range(NB_RR - len(pqrsts)):
-        features += [0 for x in range(17)]
-
-    return features
-
-
-def features_for_row(row):
-    features = []
-
-    pqrsts = extract_pqrst(row)
-    features.append(len(pqrsts) * 1.0 * loader.FREQUENCY / len(row))
-
-    r = [x[2] for x in pqrsts]
-    minus_sign = sum([1 for i in r if row[i] < 0])
-    if minus_sign > int(0.5 * len(r)) + 1:
-        # if more than half of detected R peaks have negative value, we transpose ecg
-        row = preprocessing.transpose_ecg(row)
-
-    features += wavelet_coefficients(row)
-
-    if len(r) > 0:
-        r_val = [row[i] for i in r]
-        features.append(np.mean(r_val))
-        features.append(np.std(r_val))
-        rri = np.diff(r)
-    else:
-        features.append(0)
-        features.append(0)
-        rri = []
-
-    if len(rri) > 0:
-        mean = np.mean(rri)
-        nrri = matlab.select(rri, lambda x: 0.5 * mean < x < 1.5 * mean)
-        features.append(len(nrri) / len(rri))
-    else:
-        features.append(0)
-
-    features += extract_hrv(rri)
-
-    features += extract_features_for_pqrst(row, pqrsts)
-
-    features = np.nan_to_num(np.array(features))
+        features += [0 for x in range(13)]
 
     return features

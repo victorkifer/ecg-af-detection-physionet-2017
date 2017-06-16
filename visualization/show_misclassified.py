@@ -10,7 +10,6 @@ NOTE:
 """
 
 import csv
-from collections import Counter
 
 import matplotlib
 
@@ -24,8 +23,7 @@ from sklearn.metrics import confusion_matrix
 
 plt.rcParams["figure.figsize"] = (20, 6)
 
-import loader
-from common.qrs_detect import qrs_detect, normalize_ecg, remove_dc_component
+from loading import loader
 
 with open('../answers.txt') as predicted, \
         open('../validation/REFERENCE.csv') as correct:

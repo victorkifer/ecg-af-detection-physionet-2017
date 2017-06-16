@@ -1,13 +1,26 @@
 import numpy as np
+from collections import Iterable
 from scipy import interpolate
 from scipy.signal import welch
 
 
 def time_domain(rri):
     """
-    Computes time domain characteristics of heart rate
+    Computes time domain characteristics of heart rate:
+
+    - RMSSD, Root mean square of successive differences
+    - NN50, Number of pairs of successive NN intervals that differ by more than 50ms
+    - pNN50, Proportion of NN50 divided by total number of NN intervals
+    - NN20, Number of pairs of successive NN intervals that differ by more than 20ms
+    - pNN20, Proportion of NN20 divided by total number of NN intervals
+    - SDNN, standard deviation of NN intervals
+    - mRRi, mean length of RR interval
+    - stdRRi, mean length of RR intervals
+    - mHR, mean heart rate
+
     :param rri: RR intervals in ms
-    :return:
+    :return: dictionary with computed characteristics
+    :rtype: dict
     """
     rmssd = 0
     sdnn = 0
@@ -24,7 +37,7 @@ def time_domain(rri):
         if len(diff_rri) > 0:
             # Root mean square of successive differences
             rmssd = np.sqrt(np.mean(diff_rri ** 2))
-            # Number of pairs of successive NNs that differe by more than 50ms
+            # Number of pairs of successive NNs that differ by more than 50ms
             nn50 = sum(abs(diff_rri) > 50)
             # Proportion of NN50 divided by total number of NNs
             pnn50 = (nn50 / len(diff_rri)) * 100
@@ -51,64 +64,32 @@ def time_domain(rri):
     return dict(zip(keys, values))
 
 
-def _interpolate_rri(rri, interp_freq=4):
-    time_rri = _create_time_info(rri)
-    time_rri_interp = np.arange(0, time_rri[-1], 1 / interp_freq)
-    tck = interpolate.splrep(time_rri, rri, s=0)
-    rri_interp = interpolate.splev(time_rri_interp, tck, der=0)
-    return time_rri_interp, rri_interp
-
-
-def _create_time_info(rri):
-    rri_time = np.cumsum(rri) / 1000.0  # make it seconds
-    return rri_time - rri_time[0]  # force it to start at zero
-
-
-def _transform_rri_to_milliseconds(rri):
-    if np.median(rri) < 1:
-        rri *= 1000
-    return rri
-
-
-def frequency_domain(rri, interp_freq=4):
+def frequency_domain(x: Iterable, fs: float = 1000,
+                     vlf_band=(0, 4),
+                     lf_band=(4, 15),
+                     hf_band=(15, 40)
+                     ) -> dict:
     """
     Interpolates a signal and performs Welch estimation of power spectrum
-    :param rri:
-    :param interp_freq:
-    :return:
+    for VLF, LF and HF bands
+
+    :param x: signal
+    :param fs: signal frequency
+    :param vlf_band: very low frequencies band interval
+    :param lf_band: low frequencies band interval
+    :param hf_band: high frequencies band interval
+    :return: computed frequency domain components of heart rate variability
     """
 
-    fxx = np.array([])
-    pxx = np.array([])
+    fxx, pxx = welch(x, fs=fs)
 
-    if len(rri) >= 4:
-        # frequency domain cannot be computed on short RRi
-        time_interp, rri_interp = _interpolate_rri(rri, interp_freq)
-        fxx, pxx = welch(x=rri_interp, fs=interp_freq, nperseg=rri_interp.shape[-1])
-
-    return _bands_energy(fxx, pxx)
-
-
-def _bands_energy(fxx, pxx, vlf_band=(0, 0.04), lf_band=(0.04, 0.15),
-                  hf_band=(0.15, 0.4)):
     vlf_indexes = np.logical_and(fxx >= vlf_band[0], fxx < vlf_band[1])
     lf_indexes = np.logical_and(fxx >= lf_band[0], fxx < lf_band[1])
     hf_indexes = np.logical_and(fxx >= hf_band[0], fxx < hf_band[1])
 
-    if len(vlf_indexes) > 0:
-        vlf = np.trapz(y=pxx[vlf_indexes], x=fxx[vlf_indexes])
-    else:
-        vlf = 0
-
-    if len(lf_indexes) > 0:
-        lf = np.trapz(y=pxx[lf_indexes], x=fxx[lf_indexes])
-    else:
-        lf = 0
-
-    if len(hf_indexes) > 0:
-        hf = np.trapz(y=pxx[hf_indexes], x=fxx[hf_indexes])
-    else:
-        hf = 0
+    vlf = np.sum(pxx[vlf_indexes])
+    lf = np.sum(pxx[lf_indexes])
+    hf = np.sum(pxx[hf_indexes])
 
     total_power = vlf + lf + hf
 

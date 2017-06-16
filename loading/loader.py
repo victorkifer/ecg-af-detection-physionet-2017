@@ -2,23 +2,20 @@ import csv
 from os import path
 
 import scipy.io as sio
-import preprocessing
 
 # Default dir where data set is stored
+
 __DATA_DIR = '/usr/share/ml_data_sets/CinC_ECG/training2017'
 FREQUENCY = 300
 
 
-def load_all_data(data_path=__DATA_DIR, shuffle=True):
+def load_all_data(data_path=__DATA_DIR):
     """
     Loads all the dataset
     :param data_path: directory where the dataset is located
-    :param shuffle: whether to shuffle loaded data
     :return: tuple of (array of row records, array of labels)
     """
-    (data, labels) = __load_data(data_path)
-    if shuffle:
-        return preprocessing.shuffle_data(data, labels)
+    data, labels = __load_data(data_path)
     return data, labels
 
 

@@ -8,11 +8,12 @@ See common/qrs_detect.py, common/qrs_detect2.py
 import random
 
 import matplotlib
+
 matplotlib.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
 
-from common.qrs_detect import *
+from features.qrs_detect import *
 
 plt.rcParams["figure.figsize"] = (20, 4)
 
@@ -21,13 +22,13 @@ random.seed(seed)
 np.random.seed(seed)
 print("Seed =", seed)
 
-import loader
+from loading import loader
 
-from common.qrs_detect2 import *
+from features.qrs_detect2 import *
 
 
 def plot_with_detected_peaks(row, clazz):
-    r = qrs_detect(normalize_ecg(remove_dc_component(row)))
+    r = qrs_detect(normalizer.normalize_ecg(row))
 
     print('R', len(r), r)
     times = np.diff(r)

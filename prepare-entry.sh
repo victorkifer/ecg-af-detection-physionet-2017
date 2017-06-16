@@ -26,33 +26,22 @@ echo "==== running entry script on validation set ===="
 rm -R outputs/entry >/dev/null 2>&1 || true
 rm -r outputs/entry.zip >/dev/null 2>&1 || true
 
-#rm -f answers.txt
-#python3 main_neural_nets.py
-
 mkdir -p outputs/entry
-
-cp setup_nn.sh outputs/entry/setup.sh
-cp next_nn.sh outputs/entry/next.sh
+cp setup.sh outputs/entry/setup.sh
+cp next.sh outputs/entry/next.sh
 
 cp AUTHORS.txt outputs/entry/
 cp LICENSE.txt outputs/entry/
 cp dependencies.txt outputs/entry/
 
-mkdir outputs/entry/utils
-cp -R utils/*.py outputs/entry/utils/
+cp -R biosppy /outputs/entry/
+cp -R features /outputs/entry/
+cp -R loading /outputs/entry/
+cp -R models /outputs/entry/
+cp -R preprocessing /outputs/entry/
+cp -R utils /outputs/entry/
 
-mkdir outputs/entry/common
-cp -R common/*.py outputs/entry/common/
-
-mkdir outputs/entry/biosppy
-cp -R biosppy/*.py outputs/entry/biosppy/
-
-mkdir outputs/entry/biosppy/signals
-cp -R biosppy/signals/*.py outputs/entry/biosppy/signals/
-
-cp *.py outputs/entry
-cp answers.txt outputs/entry
-
+cp model.pkl outputs/entry || true
 cp weights.h5 outputs/entry || true
 
 mkdir outputs/entry/packages

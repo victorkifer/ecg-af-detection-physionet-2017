@@ -35,7 +35,7 @@ color_dict = {
     3: "black"
 }
 
-for i, y in enumerate(subX[:500]):
+for i, y in enumerate(subX[:1000]):
     lbl = subY[i]
 
     if lbl in []:

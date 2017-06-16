@@ -29,31 +29,11 @@ def best_model_saver(model_name):
 
 def model_learning_optimizer():
     return ReduceLROnPlateau(monitor='val_loss', factor=0.2,
-                             patience=2, min_lr=0.1, verbose=1)
+                             patience=2, min_lr=0.01, verbose=1)
 
 
 def learning_stopper():
     return EarlyStopping(monitor='val_loss', min_delta=0.01, patience=5, verbose=1)
 
 
-def get_class_weights(Y, mu=0.8):
-    """
-    :param Y: labels
-    :param mu: parameter to tune
-    :return: class weights dictionary
-    """
-    train_categories_dist = dict()
-    labels = np.unique(Y)
-    for label in labels:
-        train_occurancies = sum([1 if label == y else 0 for y in Y])
-        train_categories_dist[label] = train_occurancies
 
-    total = sum(train_categories_dist.values())
-    keys = train_categories_dist.keys()
-    class_weight = dict()
-
-    for key in keys:
-        score = math.log(mu * total / float(train_categories_dist[key]))
-        class_weight[key] = score if score > 1.0 else 1.0
-
-    return class_weight

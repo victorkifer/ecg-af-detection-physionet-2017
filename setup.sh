@@ -11,8 +11,11 @@ set -o pipefail
 
 cd packages
 
-# Common packages
 pip3 install --no-deps --user PyWavelets-0.5.2.tar.gz
 pip3 install --no-deps --user scikit-learn-0.18.1.tar.gz
+
+pip3 install --no-deps --user Theano-0.9.0.tar.gz
+pip3 install --no-deps --user Keras-2.0.2.tar.gz
+pip3 install --no-deps --user h5py-2.7.0.tar.gz
 
 cd ..

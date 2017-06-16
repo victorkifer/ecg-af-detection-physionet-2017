@@ -10,16 +10,16 @@ NOTE:
 """
 
 import matplotlib
+import pydotplus
 import sklearn
 from sklearn.externals import joblib
 
-import feature_extractor5
-import loader
 import preprocessing
+from features import feature_extractor5
+from loading import loader
+from preprocessing import normalizer
 
 matplotlib.use("Qt5Agg")
-
-import matplotlib.pyplot as plt
 
 import numpy as np
 
@@ -36,30 +36,27 @@ if not loader.check_has_example(name):
     exit(-1)
 
 x = loader.load_data_from_file(name, "../validation")
-x = preprocessing.normalize_ecg(x)
+x = normalizer.normalize_ecg(x)
+feature_names = feature_extractor5.get_feature_names(x)
 x = feature_extractor5.features_for_row(x)
 
 # as we have one sample at a time to predict, we should resample it into 2d array to classify
 x = np.array(x).reshape(1, -1)
 
 model = joblib.load(model_file)
-tree = model
+dtree = model.estimators_[0]
 
-# import pydotplus
-# dot_data = sklearn.tree.export_graphviz(tree, out_file=None)
-# graph = pydotplus.graph_from_dot_data(dot_data)
-# graph.write_pdf("iris.pdf")
+
+def export_tree(dtree, feature_names):
+    dot_data = sklearn.tree.export_graphviz(dtree, feature_names=feature_names, out_file=None)
+    graph = pydotplus.graph_from_dot_data(dot_data)
+    graph.write_png("dtree.png")
 
 
 def explain(tree, x):
     feature = tree.tree_.feature
     threshold = tree.tree_.threshold
     node_indicator = tree.decision_path(x)
-
-    # Now, it's possible to get the tests that were used to predict a sample or
-    # a group of samples. First, let's make it for the sample.
-
-    print(x)
 
     for node_id in node_indicator.indices:
         if (x[0, feature[node_id]] <= threshold[node_id]):
@@ -70,15 +67,17 @@ def explain(tree, x):
         print("decision id node %s : (X[%s, %s] (= %s) %s %s)"
               % (node_id,
                  0,
-                 feature[node_id],
+                 feature_names[feature[node_id]],
                  x[0, feature[node_id]],
                  threshold_sign,
                  threshold[node_id]))
 
+    print(tree.predict(x))
 
-def get_code(tree, feature_names = None, tabdepth=0):
-    left      = tree.tree_.children_left
-    right     = tree.tree_.children_right
+
+def get_code(tree, feature_names=None, tabdepth=0):
+    left = tree.tree_.children_left
+    right = tree.tree_.children_right
     threshold = tree.tree_.threshold
     if feature_names is None:
         features = ['f%d' % i for i in tree.tree_.feature]
@@ -87,25 +86,25 @@ def get_code(tree, feature_names = None, tabdepth=0):
     value = tree.tree_.value
 
     def recurse(left, right, threshold, features, node, tabdepth=0):
-            if (threshold[node] != -2):
-                    print('\t' * tabdepth,
-                          "if ( " + features[node] + " <= " + str(threshold[node]) + " ) {")
-                    if left[node] != -1:
-                            recurse (left, right, threshold, features,left[node], tabdepth+1)
-                    print('\t' * tabdepth,
-                          "} else {")
-                    if right[node] != -1:
-                            recurse (left, right, threshold, features,right[node], tabdepth+1)
-                    print('\t' * tabdepth,
-                          "}")
-            else:
-                    print('\t' * tabdepth,
-                          "return " + str(value[node]))
+        if (threshold[node] != -2):
+            print('\t' * tabdepth,
+                  "if ( " + features[node] + " <= " + str(threshold[node]) + " ) {")
+            if left[node] != -1:
+                recurse(left, right, threshold, features, left[node], tabdepth + 1)
+            print('\t' * tabdepth,
+                  "} else {")
+            if right[node] != -1:
+                recurse(left, right, threshold, features, right[node], tabdepth + 1)
+            print('\t' * tabdepth,
+                  "}")
+        else:
+            print('\t' * tabdepth,
+                  "return " + str(value[node]))
 
     recurse(left, right, threshold, features, 0)
 
 
+# get_code(tree, feature_names)
 
-# get_code(tree)
-
-explain(tree, x)
+explain(dtree, x)
+# export_tree(dtree, feature_names)

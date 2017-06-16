@@ -5,11 +5,12 @@ This script plots different stages of normalization of the signal
 import random
 
 import matplotlib
+
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 
-import loader
-from common.qrs_detect import *
+from loading import loader
+from features.qrs_detect import *
 
 plt.rcParams["figure.figsize"] = (20, 8)
 
@@ -20,12 +21,12 @@ print("Seed =", seed)
 
 
 def plot_with_detected_peaks(ecg, clazz):
-    total = 7
+    total = 3
 
     plt.subplot(total, 1, 1)
     plt.ylabel(clazz)
     plt.plot(ecg)
-    ecg1 = normalize_ecg(remove_dc_component(ecg))
+    ecg1 = normalizer.normalize_ecg(ecg)
 
     plt.subplot(total, 1, 2)
     plt.ylabel("DC Normalized")

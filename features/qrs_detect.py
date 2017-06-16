@@ -1,25 +1,9 @@
-from math import *
-
+from preprocessing import normalizer
 from utils.matlab import *
 
 np.set_printoptions(threshold=np.nan)
 
 from scipy.signal import lfilter
-
-
-def remove_dc_component(ecg):
-    mean = np.mean(ecg)
-    # cancel DC components
-    return ecg - mean
-
-
-def normalize_ecg(ecg):
-    """
-    Normalizes to a range of [-1; 1]
-    :param ecg: input signal
-    :return: normalized signal
-    """
-    return ecg / max(fabs(np.amin(ecg)), fabs(np.amax(ecg)))
 
 
 def pqrst_detect(ecg):
@@ -69,7 +53,7 @@ def low_pass_filtering(ecg):
     ecg2 = np.convolve(ecg, h_LP)
     # cancel delay
     ecg2 = np.roll(ecg2, -6)
-    return normalize_ecg(ecg2)
+    return normalizer.max_normalization(ecg2)
 
 
 def high_pass_filtering(ecg):
@@ -84,7 +68,7 @@ def high_pass_filtering(ecg):
     ecg3 = np.convolve(ecg, h_HP)
     # cancel delay
     ecg3 = np.roll(ecg3, -16)
-    return normalize_ecg(ecg3)
+    return normalizer.max_normalization(ecg3)
 
 
 def derivative_filter(ecg):
@@ -94,12 +78,12 @@ def derivative_filter(ecg):
     # Apply filter
     ecg4 = np.convolve(ecg, h)
     ecg4 = np.roll(ecg4, -6)
-    return normalize_ecg(ecg4)
+    return normalizer.max_normalization(ecg4)
 
 
 def squaring(ecg):
     ecg5 = np.square(ecg)
-    return normalize_ecg(ecg5)
+    return normalizer.max_normalization(ecg5)
 
 
 def moving_window_integration(ecg):
@@ -110,7 +94,7 @@ def moving_window_integration(ecg):
     # Apply filter
     ecg6 = np.convolve(ecg, h)
     ecg6 = np.roll(ecg6, -15)
-    return normalize_ecg(ecg6)
+    return normalizer.max_normalization(ecg6)
 
 
 def left_right(ecg6):

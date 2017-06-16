@@ -18,22 +18,36 @@ from utils.system import mkdir
 
 matplotlib.use("Qt5Agg")
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 
-plt.rcParams["figure.figsize"] = (4, 2)
+plt.rcParams["figure.figsize"] = (4, 10)
 matplotlib.rc('xtick', labelsize=8)
 matplotlib.rc('ytick', labelsize=8)
 
-import loader
+from loading import loader
 
 
 def __draw_to_file(file, times, values):
+    plt.subplot(3, 1, 1)
     plt.plot(times, values.T, 'm', linewidth=1.5, alpha=0.7)
+    plt.title("Templates")
+
+    plt.subplot(3, 1, 2)
+    plt.plot(times, [np.mean(x) for x in values.T], 'm', linewidth=1.5, alpha=0.7)
+    plt.title("Mean")
     plt.grid()
+
+    plt.subplot(3, 1, 3)
+    plt.plot(times, [np.median(x) for x in values.T], 'm', linewidth=1.5, alpha=0.7)
+    plt.title("Median")
+    plt.grid()
+
     # plt.show()
-    plt.savefig(file)
+    plt.savefig(file, bbox_inches='tight', pad_inches=0.1)
     plt.close()
 
 
@@ -78,11 +92,14 @@ with open('../answers.txt') as predicted, \
 
     print(matrix)
 
+    print("Plotting misclassified")
     base_dir = "../outputs/misclassified"
 
     mkdir(base_dir)
 
+    misclassified = sorted(misclassified, key=lambda t: t[2])
     for item in misclassified:
+        print("Saving to " + item[2])
         row = loader.load_data_from_file(item[2])
         [ts, fts, rpeaks, tts, thb, hrts, hr] = ecg.ecg(signal=row, sampling_rate=loader.FREQUENCY, show=False)
         __draw_to_file(
