@@ -4,7 +4,7 @@ from scipy import interpolate
 from scipy.signal import welch
 
 
-def time_domain(rri):
+def time_domain(rri: Iterable):
     """
     Computes time domain characteristics of heart rate:
 

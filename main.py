@@ -3,7 +3,10 @@ import csv
 from functools import partial
 from os import path
 
-from models.nn import ResNetEcgModel
+from sklearn.ensemble import IsolationForest, RandomForestClassifier
+from sklearn.feature_selection import RFECV, RFE
+
+from models.dt import RandomForestEcgModel
 
 try:
     import matplotlib
@@ -18,7 +21,7 @@ from sklearn.model_selection import train_test_split
 from features import feature_extractor5
 from loading import loader
 from preprocessing import categorizer, balancer, normalizer
-from utils import logger, parallel
+from utils import logger, parallel, matlab
 from utils.common import set_seed, shuffle_data
 
 extractor = feature_extractor5
@@ -62,7 +65,7 @@ def get_training_data(data_dir=None, restore_stored=False):
 
 
 def get_raw_model(input_shape=None):
-    return ResNetEcgModel(input_shape)
+    return RandomForestEcgModel()
 
 
 def get_saved_model(input_shape=None):
@@ -72,7 +75,7 @@ def get_saved_model(input_shape=None):
 
 
 def train(data_dir):
-    subX, subY, fn = get_training_data(data_dir=data_dir, restore_stored=True)
+    subX, subY, fn = get_training_data(data_dir=data_dir, restore_stored=False)
 
     Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 
@@ -80,7 +83,7 @@ def train(data_dir):
     model = get_raw_model(input_shape)
     model.fit(Xt, Yt, validation=(Xv, Yv))
     model.evaluate(Xv, Yv)
-    # model.show_feature_importances(features_names=fn)
+    model.show_feature_importances(features_names=fn)
 
 
 def classify(record, data_dir, clf=None):

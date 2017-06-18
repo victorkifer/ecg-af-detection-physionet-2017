@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from collections import Iterable
 
 from scipy import stats
 
@@ -32,3 +33,7 @@ def shuffle_data(data, labels):
         data_shuf.append(data[i])
         labels_shuf.append(labels[i])
     return (np.array(data_shuf), labels_shuf)
+
+
+def trimboth(x: Iterable, percent = 0.1):
+    n = int(percent * len(x))

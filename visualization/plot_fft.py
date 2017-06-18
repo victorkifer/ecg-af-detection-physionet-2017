@@ -5,6 +5,9 @@ This script plots different stages of normalization of the signal
 import random
 
 import matplotlib
+from scipy.fftpack import fft
+
+from biosppy.signals import ecg
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
@@ -12,7 +15,7 @@ import matplotlib.pyplot as plt
 from loading import loader
 from features.qrs_detect import *
 
-plt.rcParams["figure.figsize"] = (20, 8)
+plt.rcParams["figure.figsize"] = (4, 7)
 
 seed = 42
 random.seed(seed)
@@ -20,48 +23,60 @@ np.random.seed(seed)
 print("Seed =", seed)
 
 
-def plot_with_detected_peaks(ecg, clazz):
+def plot_with_detected_peaks(x, clazz):
     total = 7
+
+    x = ecg.ecg(x, sampling_rate=300, show=False)['templates']
+
+    m = [np.median(col) for col in x.T]
+
+    dists = [np.sum(np.square(s-m)) for s in x]
+    pmin = np.argmin(dists)
+
+    x = x[pmin]
+
+    p = x[:45]
+    qrs = x[45:80]
+    t = x[80:]
 
     plt.subplot(total, 1, 1)
     plt.ylabel(clazz)
-    plt.plot(ecg)
-    ecg1 = normalizer.normalize_ecg(ecg)
+    plt.plot(x)
 
     plt.subplot(total, 1, 2)
-    plt.ylabel("DC Normalized")
-    plt.plot(ecg1)
-    ecg2 = low_pass_filtering(ecg1)
+    plt.ylabel(clazz)
+    plt.plot(p)
 
     plt.subplot(total, 1, 3)
-    plt.ylabel("LP filter")
-    plt.plot(ecg2)
-    ecg3 = high_pass_filtering(ecg2)
+    plt.ylabel("P DFT")
+    ff = fft(p)[:len(p) // 2]
+    plt.plot(ff, 'r')
 
     plt.subplot(total, 1, 4)
-    plt.ylabel("HP filter")
-    plt.plot(ecg3)
-    ecg4 = derivative_filter(ecg3)
+    plt.ylabel(clazz)
+    plt.plot(qrs)
 
     plt.subplot(total, 1, 5)
-    plt.ylabel("Derivative")
-    plt.plot(ecg4)
-    ecg5 = squaring(ecg4)
+    plt.ylabel("QRS DFT")
+    ff = fft(qrs)[:len(qrs) // 2]
+    plt.plot(ff, 'r')
 
     plt.subplot(total, 1, 6)
-    plt.ylabel("Square")
-    plt.plot(ecg5)
-    ecg6 = moving_window_integration(ecg5)
+    plt.ylabel(clazz)
+    plt.plot(t)
 
     plt.subplot(total, 1, 7)
-    plt.ylabel("Window")
-    plt.plot(ecg6)
+    plt.ylabel("T DFT")
+    ff = fft(t)[:len(t) // 2]
+    plt.plot(ff, 'r')
+
     plt.show()
 
 
 # Normal: A00001, A00002, A0003, A00006
-plot_with_detected_peaks(loader.load_data_from_file("A00001"), "Normal")
+plot_with_detected_peaks(loader.load_data_from_file("A07088"), "Normal")
 plot_with_detected_peaks(loader.load_data_from_file("A00006"), "Normal")
+plot_with_detected_peaks(loader.load_data_from_file("A08128"), "Normal")
 # AF: A00004, A00009, A00015, A00027
 plot_with_detected_peaks(loader.load_data_from_file("A00004"), "AF rhythm")
 plot_with_detected_peaks(loader.load_data_from_file("A00009"), "AF rhythm")

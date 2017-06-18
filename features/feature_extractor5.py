@@ -1,11 +1,13 @@
+import itertools
 import numpy as np
 from scipy import signal
 from scipy.stats import skew, kurtosis
 
 from biosppy.signals import ecg
-from features import hrv
+from features import hrv, heartbeats, fs
 from features.melbourne_eeg import calcActivity, calcMobility, calcComplexity
 from loading import loader
+from utils import common, matlab
 
 
 def frequency_powers(x, n_power_features=40):
@@ -34,11 +36,31 @@ def frequency_powers_summary(x):
     return features
 
 
+def fft_features(beat):
+    pff = fs.extract_fft(beat[:int(0.13 * loader.FREQUENCY)])
+    rff = fs.extract_fft(beat[int(0.13 * loader.FREQUENCY):int(0.27 * loader.FREQUENCY)])
+    tff = fs.extract_fft(beat[int(0.27 * loader.FREQUENCY):])
+
+    features = dict()
+    for i, v in enumerate(pff[:10]):
+        features['pft' + str(i)] = v
+
+    for i, v in enumerate(rff[:10]):
+        features['rft' + str(i)] = v
+
+    for i, v in enumerate(tff[:20]):
+        features['tft' + str(i)] = v
+
+    return features
+
+
 def heart_rate_features(hr):
     features = {
         'hr_max': 0,
         'hr_min': 0,
         'hr_mean': 0,
+        'hr_median': 0,
+        'hr_mode': 0,
         'hr_std': 0
     }
 
@@ -46,38 +68,35 @@ def heart_rate_features(hr):
         features['hr_max'] = np.amax(hr)
         features['hr_min'] = np.amin(hr)
         features['hr_mean'] = np.mean(hr)
+        features['hr_median'] = np.median(hr)
+        features['hr_mode'] = common.mode(hr)
         features['hr_std'] = np.std(hr)
 
     return features
 
 
 def heart_beats_features(thb):
-    means = np.array([col.median() for col in thb.T])
+    means = heartbeats.median_heartbeat(thb)
     mins = np.array([col.min() for col in thb.T])
     maxs = np.array([col.max() for col in thb.T])
     # stds = np.array([col.std() for col in thb.T])
+    diff = maxs - mins
 
     features = dict()
     for i, v in enumerate(means):
         features['median' + str(i)] = v
 
-    for i, v in enumerate(mins):
-        features['min' + str(i)] = v
-
-    for i, v in enumerate(maxs):
-        features['max' + str(i)] = v
+    for i, v in enumerate(diff):
+        features['hbdiff' + str(i)] = v
 
     return features
 
 
 def heart_beats_features2(thb):
-    means = np.array([np.median(col) for col in thb.T])
+    means = heartbeats.median_heartbeat(thb)
     stds = np.array([np.std(col) for col in thb.T])
 
     r_pos = int(0.2 * loader.FREQUENCY)
-
-    if means[r_pos] < 0:
-        means *= -1
 
     PQ = means[:int(0.15 * loader.FREQUENCY)]
     ST = means[int(0.25 * loader.FREQUENCY):]
@@ -94,15 +113,22 @@ def heart_beats_features2(thb):
     t_wave = ST[max(0, t_pos - int(0.08 * loader.FREQUENCY)):min(len(ST), t_pos + int(0.08 * loader.FREQUENCY))]
     p_wave = PQ[max(0, p_pos - int(0.06 * loader.FREQUENCY)):min(len(PQ), p_pos + int(0.06 * loader.FREQUENCY))]
 
+    r_plus = sum(1 if b[r_pos] > 0 else 0 for b in thb)
+    r_minus = len(thb) - r_plus
+
     QRS = means[q_pos:s_pos]
 
     a = dict()
     a['PR_interval'] = r_pos - p_pos
     a['P_max'] = PQ[p_pos]
     a['P_to_R'] = PQ[p_pos] / means[r_pos]
+    a['P_to_Q'] = PQ[p_pos] - means[q_pos]
     a['ST_interval'] = t_pos
     a['T_max'] = ST[t_pos]
+    a['R_plus'] = r_plus / max(1, len(thb))
+    a['R_minus'] = r_minus / max(1, len(thb))
     a['T_to_R'] = ST[t_pos] / means[r_pos]
+    a['T_to_S'] = ST[t_pos] - means[s_pos]
     a['P_to_T'] = PQ[p_pos] / ST[t_pos]
     a['P_skew'] = skew(p_wave)
     a['P_kurt'] = kurtosis(p_wave)
@@ -112,14 +138,18 @@ def heart_beats_features2(thb):
     a['mobility'] = calcMobility(means)
     a['complexity'] = calcComplexity(means)
     a['QRS_len'] = s_pos - q_pos
+
+    qrs_min = abs(min(QRS))
+    qrs_max = abs(max(QRS))
+    qrs_abs = max(qrs_min, qrs_max)
+    sign = -1 if qrs_min > qrs_max else 1
+
+    a['QRS_diff'] = sign * abs(qrs_min / qrs_abs)
     a['QS_diff'] = abs(means[s_pos] - means[q_pos])
     a['QRS_kurt'] = kurtosis(QRS)
     a['QRS_skew'] = skew(QRS)
     a['P_std'] = np.mean(stds[:q_pos])
     a['T_std'] = np.mean(stds[s_pos:])
-
-    for i in range(len(means)):
-        a['median_' + str(i)] = means[i]
 
     return a
 
@@ -135,6 +165,33 @@ def heart_beats_features3(thb):
         'mean_median_diff_mean': np.mean(diff),
         'mean_median_diff_std': np.std(diff)
     }
+
+
+def cross_beats(s, peaks):
+    fs = loader.FREQUENCY
+    r_after = int(0.06 * fs)
+    r_before = int(0.06 * fs)
+
+    crossbeats = []
+    for i in range(1, len(peaks)):
+        start = peaks[i-1] + r_after
+        end = peaks[i] - r_before
+        if start >= end:
+            continue
+
+        crossbeats.append(s[start:end])
+
+    features = dict()
+    f_peaks = [sign_changes(x) for x in crossbeats]
+    features['cb_p_mean'] = np.mean(f_peaks)
+    features['cb_p_min'] = np.min(f_peaks)
+    features['cb_p_max'] = np.max(f_peaks)
+
+    return features
+
+
+def sign_changes(x):
+    return len(list(itertools.groupby(x, lambda x: x > 0))) - (x[0] > 0)
 
 
 def r_features(s, r_peaks):
@@ -181,12 +238,14 @@ def get_features_dict(x):
 
     fx = dict()
     fx.update(heart_rate_features(hr))
-    # fx.update(frequency_powers(x))
-    fx.update(frequency_powers(fts))
+    fx.update(frequency_powers(x, n_power_features=60))
+    fx.update(add_suffix(frequency_powers(fts), "fil"))
     fx.update(frequency_powers_summary(fts))
     fx.update(heart_beats_features2(thb))
+    fx.update(fft_features(heartbeats.median_heartbeat(thb)))
     # fx.update(heart_beats_features3(thb))
     fx.update(r_features(fts, rpeaks))
+    fx.update(cross_beats(fts, rpeaks))
 
     fx['PRbyST'] = fx['PR_interval'] * fx['ST_interval']
     fx['P_form'] = fx['P_kurt'] * fx['P_skew']
