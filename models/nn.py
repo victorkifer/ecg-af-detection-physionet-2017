@@ -31,7 +31,7 @@ class NeuralNetworkEcgModel(EcgModel):
         return helper.model_learning_optimizer()
 
     def get_learning_stopper(self):
-        return None  # helper.learning_stopper()
+        return helper.learning_stopper()
 
     @staticmethod
     def from_categorical(y):

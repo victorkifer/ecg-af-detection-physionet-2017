@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
+
 import argparse
 import csv
 from functools import partial
 from os import path
-
-from sklearn.ensemble import IsolationForest, RandomForestClassifier
-from sklearn.feature_selection import RFECV, RFE
 
 from models.dt import RandomForestEcgModel
 
@@ -21,7 +20,7 @@ from sklearn.model_selection import train_test_split
 from features import feature_extractor5
 from loading import loader
 from preprocessing import categorizer, balancer, normalizer
-from utils import logger, parallel, matlab
+from utils import logger, parallel
 from utils.common import set_seed, shuffle_data
 
 extractor = feature_extractor5
@@ -74,8 +73,8 @@ def get_saved_model(input_shape=None):
     return model
 
 
-def train(data_dir):
-    subX, subY, fn = get_training_data(data_dir=data_dir, restore_stored=False)
+def train(args):
+    subX, subY, fn = get_training_data(data_dir=args.dir, restore_stored=False)
 
     Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 
@@ -100,6 +99,10 @@ def classify(record, data_dir, clf=None):
     return categorizer.get_original_label(clf.predict(x)[0])
 
 
+def format_result(record, label):
+    return record + "," + label
+
+
 def classify_all(data_dir):
     model = get_saved_model()
     print("Model is loaded")
@@ -112,35 +115,48 @@ def classify_all(data_dir):
         labels = parallel.apply_async(names, func)
         print("Classification finished, saving results")
 
-        with open("answers.txt", "a") as f:
+        with open(args.output, "a") as f:
             for (name, label) in zip(names, labels):
-                f.write(name + "," + label + "\n")
+                print(format_result(name, label))
+                f.write(format_result(name, label) + "\n")
+
+
+def main_classify_single(args):
+    label = classify(args.record, data_dir=args.dir)
+
+    with open(args.output, "a") as f:
+        print(format_result(args.record, label))
+        f.write(format_result(args.record, label) + "\n")
+
+
+def main_classify_all(args):
+    if path.exists(args.output):
+        print(args.output + " already exists, clean it? [y/n]")
+        yesno = input().lower().strip()
+        if yesno == "yes" or yesno == "y":
+            open(args.output, 'w').close()
+            classify_all(args.dir)
+    else:
+        classify_all(args.dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ECG classifier")
-    parser.add_argument("-r", "--record", default="", help="record to classify")
-    parser.add_argument("-d", "--dir", default="validation", help="dir with validation files")
-    parser.add_argument('--train', dest='train', action='store_true', help="perform training")
-    parser.set_defaults(train=False)
+    parser.add_argument("-d", "--dir", default="validation", help="Directory with the data")
+    parser.add_argument("-m", "--mode", help="Script working mode. One of [train, classify]")
+    parser.add_argument("-r", "--record", default="", help="Name of the record to be classified")
+    parser.add_argument("-o", "--output", default="answers.txt", help="File where to write classification results")
     args = parser.parse_args()
 
-    logger.enable_logging('ecg', args.train)
     set_seed(42)
 
-    if args.train:
-        train(args.dir)
-    elif len(args.record) > 0:
-        label = classify(args.record, data_dir=args.dir)
-
-        with open("answers.txt", "a") as f:
-            f.write(args.record + "," + label + "\n")
-    else:
-        if path.exists("answers.txt"):
-            print("answers.txt already exists, clean it? [y/n]")
-            yesno = input().lower().strip()
-            if yesno == "yes" or yesno == "y":
-                open('answers.txt', 'w').close()
-                classify_all(args.dir)
+    if args.mode == "train":
+        logger.enable_logging('ecg', True)
+        train(args)
+    elif args.mode == "classify":
+        if len(args.record) > 0:
+            main_classify_single(args)
         else:
-            classify_all(args.dir)
+            main_classify_all(args)
+    else:
+        parser.print_help()

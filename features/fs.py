@@ -1,5 +1,6 @@
-from scipy.fftpack import fft
+from scipy.fftpack import rfft
+import numpy as np
 
 
 def extract_fft(x):
-    return fft(x)[:len(x) // 2]
+    return rfft(x)[:len(x) // 2]

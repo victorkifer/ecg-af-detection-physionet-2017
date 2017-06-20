@@ -10,4 +10,4 @@ set -o pipefail
 
 RECORD=$1
 
-python3 main.py --record $RECORD --dir `pwd`
+python3 main.py -m classify -r $RECORD --dir `pwd`

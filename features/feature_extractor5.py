@@ -261,4 +261,4 @@ def get_feature_names(x):
 
 def features_for_row(x):
     features = get_features_dict(x)
-    return [features[key] for key in sorted(list(features.keys()))]
+    return np.array([features[key] for key in sorted(list(features.keys()))], dtype=np.float32)
