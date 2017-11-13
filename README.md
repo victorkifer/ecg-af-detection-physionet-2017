@@ -1,19 +1,21 @@
-# General information
+# The challenge
 
-Normal heart activity recorded by ECG consists of:
-- P wave
-- QRS complex
-- T wave
+PhysioNet Computing in Cardiology Challenge 2017: Atrial fibrillation detection from a short single lead ECG recording
 
-![PQRST](http://www.firstaidforfree.com/wp-content/uploads/2017/02/PQRST.png)
+https://physionet.org/challenge/2017/
 
-In case of AF:
+The official results:
 
-![Atrial activity problems](https://5minuteconsult.com/data/GbosContainer/49/m_F1793-027-010.gif)
+https://physionet.org/challenge/2017/results.csv
 
-AF is identified by:
+Our best result is 0.77.
 
-- Missing P wave or
-- Presence of f waves
+# The team
 
-And it is usually combined with irregular heart rate.
+University of Valencia: Computational Multiscale Simulation Lab (CoMMLab).
+
+Team members:
+
+- Miguel Lozano
+- Viktor Kifer
+- Francisco Martinez-Gil
