@@ -5,7 +5,7 @@ import scipy.io as sio
 
 # Default dir where data set is stored
 
-__DATA_DIR = '/usr/share/ml_data_sets/CinC_ECG/training2017'
+__DATA_DIR = '../data'
 FREQUENCY = 300
 
 

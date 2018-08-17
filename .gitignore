@@ -5,6 +5,8 @@ outputs/
 validation/
 validation
 answers.txt
+data/
+papers/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

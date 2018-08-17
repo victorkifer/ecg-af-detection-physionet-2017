@@ -65,7 +65,7 @@ def get_training_data(data_dir=None, restore_stored=False):
 
 
 def get_raw_model(input_shape=None):
-    return FcnEcgModel(input_shape)
+    return RandomForestEcgModel()
 
 
 def get_saved_model(input_shape=None):
@@ -75,7 +75,7 @@ def get_saved_model(input_shape=None):
 
 
 def train(args):
-    subX, subY, fn = get_training_data(data_dir=args.dir, restore_stored=True)
+    subX, subY, fn = get_training_data(data_dir=args.dir, restore_stored=False)
 
     Xt, Xv, Yt, Yv = train_test_split(subX, subY, test_size=0.2)
 

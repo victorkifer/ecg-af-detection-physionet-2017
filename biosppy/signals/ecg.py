@@ -105,12 +105,17 @@ def ecg(signal=None, sampling_rate=1000., show=True):
                                    smooth=True,
                                    size=3)
 
-    # get time vectors
-    length = len(signal)
-    T = (length - 1) / sampling_rate
-    ts = np.linspace(0, T, length, endpoint=False)
-    ts_hr = ts[hr_idx]
-    ts_tmpl = np.linspace(-0.2, 0.4, templates.shape[1], endpoint=False)
+    if len(hr_idx) > 0:
+        # get time vectors
+        length = len(signal)
+        T = (length - 1) / sampling_rate
+        ts = np.linspace(0, T, length, endpoint=False)
+        ts_hr = ts[hr_idx]
+        ts_tmpl = np.linspace(-0.2, 0.4, templates.shape[1], endpoint=False)
+    else:
+        ts = np.array([])
+        ts_hr = np.array([])
+        ts_tmpl = np.array([])
 
     # plot
     if show:

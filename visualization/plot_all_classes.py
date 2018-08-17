@@ -24,8 +24,6 @@ n_ecg = loader.load_data_from_file("A03823")
 o_ecg = loader.load_data_from_file("A07915")
 s_ecg = loader.load_data_from_file("A04946")
 
-
-
 total = 4
 plt.subplot(total, 1, 1)
 plt.ylabel("A-Fib")

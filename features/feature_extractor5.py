@@ -148,6 +148,7 @@ def heart_beats_features2(thb):
     a['QS_diff'] = abs(means[s_pos] - means[q_pos])
     a['QRS_kurt'] = kurtosis(QRS)
     a['QRS_skew'] = skew(QRS)
+    a['QRS_minmax'] = qrs_max - qrs_min
     a['P_std'] = np.mean(stds[:q_pos])
     a['T_std'] = np.mean(stds[s_pos:])
 
@@ -174,7 +175,7 @@ def cross_beats(s, peaks):
 
     crossbeats = []
     for i in range(1, len(peaks)):
-        start = peaks[i-1] + r_after
+        start = peaks[i - 1] + r_after
         end = peaks[i] - r_before
         if start >= end:
             continue
@@ -245,11 +246,15 @@ def get_features_dict(x):
     fx.update(fft_features(heartbeats.median_heartbeat(thb)))
     # fx.update(heart_beats_features3(thb))
     fx.update(r_features(fts, rpeaks))
-    fx.update(cross_beats(fts, rpeaks))
 
     fx['PRbyST'] = fx['PR_interval'] * fx['ST_interval']
     fx['P_form'] = fx['P_kurt'] * fx['P_skew']
     fx['T_form'] = fx['T_kurt'] * fx['T_skew']
+
+    for key, value in fx.items():
+        if np.math.isnan(value):
+            value = 0
+        fx[key] = value
 
     return fx
 

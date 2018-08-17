@@ -6,13 +6,15 @@ import random
 
 import matplotlib
 
+import biosppy
+
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 
 from loading import loader
 from features.qrs_detect import *
 
-plt.rcParams["figure.figsize"] = (20, 8)
+plt.rcParams["figure.figsize"] = (20, 4)
 
 seed = 42
 random.seed(seed)
@@ -21,7 +23,18 @@ print("Seed =", seed)
 
 
 def plot_with_detected_peaks(ecg, clazz):
-    total = 7
+    total = 2
+
+    s, sf, a,b,c,d,e = biosppy.ecg.ecg(ecg, 300, show=False)
+
+    plt.subplot(total, 1, 1)
+    plt.plot(ecg)
+
+    plt.subplot(total, 1, 2)
+    plt.plot(sf)
+    plt.show()
+
+    return
 
     plt.subplot(total, 1, 1)
     plt.ylabel(clazz)

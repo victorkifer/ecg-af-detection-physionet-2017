@@ -117,18 +117,15 @@ class FcnEcgModel(NeuralNetworkEcgModel):
         inputs = Input(shape=input_shape)
         outputs = Reshape((1,) + input_shape)(inputs)
 
-        outputs = Conv1D(filters=256, kernel_size=32, padding="same")(outputs)
+        outputs = Conv1D(filters=128, kernel_size=32, padding="same")(outputs)
         outputs = BatchNormalization()(outputs)
         outputs = Activation('relu')(outputs)
 
-        outputs = Conv1D(filters=512, kernel_size=16, padding="same")(outputs)
+        outputs = Conv1D(filters=256, kernel_size=16, padding="same")(outputs)
         outputs = BatchNormalization()(outputs)
         outputs = Activation('relu')(outputs)
 
-        outputs = GlobalMaxPooling1D()(outputs)
-        outputs = Reshape((1, 512))(outputs)
-
-        outputs = Conv1D(filters=256, kernel_size=8, padding="same")(outputs)
+        outputs = Conv1D(filters=128, kernel_size=8, padding="same")(outputs)
         outputs = BatchNormalization()(outputs)
         outputs = Activation('relu')(outputs)
 
