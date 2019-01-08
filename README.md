@@ -16,6 +16,6 @@ University of Valencia: Computational Multiscale Simulation Lab (CoMMLab).
 
 Team members:
 
-- Miguel Lozano
+- [Miguel Lozano](https://www.uv.es/mlozano/)
 - Viktor Kifer
-- Francisco Martinez-Gil
+- [Francisco Martinez-Gil](https://www.uv.es/uvweb/universidad/es/ficha-persona-1285950309813.html?p2=fmgil)
