@@ -103,8 +103,4 @@ def get_code(tree, feature_names=None, tabdepth=0):
 
     recurse(left, right, threshold, features, 0)
 
-
-# get_code(tree, feature_names)
-
 explain(dtree, x)
-# export_tree(dtree, feature_names)
